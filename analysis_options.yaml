@@ -1,0 +1,20 @@
+# Configures the Dart analyzer for this project. See
+# https://dart.dev/guides/language/analysis-options for full reference.
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    - "**/*.g.dart"
+    - "build/**"
+  errors:
+    # Surface unused declarations so cleanup work doesn't get masked.
+    unused_import: warning
+    unused_local_variable: warning
+    unused_field: warning
+    unused_element: warning
+    dead_code: warning
+
+linter:
+  rules:
+    # Project-specific lint overrides go here. Defaults from
+    # package:flutter_lints/flutter.yaml are intentionally preserved.
