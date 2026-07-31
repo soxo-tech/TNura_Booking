@@ -5,10 +5,9 @@ import 'package:booking/core/env.dart';
 import 'package:booking/model/booking_history_model.dart';
 import 'package:booking/model/profile_model.dart';
 import 'package:booking/services/api_services.dart';
+import 'package:booking/services/security_service/secure_fetch.dart';
 import 'package:booking/services/shared_preferences.dart';
 import 'package:dio/dio.dart';
-import 'package:firebase_crashlytics/firebase_crashlytics.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 
@@ -54,33 +53,41 @@ class LoginProvider extends ChangeNotifier {
 
   BookinghistoryModel? bookinghistoryModel;
 
-  Future<BookinghistoryModel?> getBookingList() async {
-    // Use the SAME device_id the booking was created against. The booking is
-    // stored against the host-seeded kDeviceId (falling back to the live FCM
-    // token only when none was seeded) in initiatePaymentV2(); querying with a
-    // different value (e.g. the live FCM token) returns an empty list.
-    final pref = await SharedPreferencesService.prefs;
-    final deviceId = pref.getString(kDeviceId) ??
-        (await FirebaseMessaging.instance.getToken() ?? "");
+ Future<BookinghistoryModel?> getBookingList() async {
     isBookingLoading = true;
     isBookingFailed = false;
     notifyListeners();
 
     try {
-      final response = await ApiService.apiMethodSetup(
-        method: ApiMethod.get,
-        url: Env().bookingList,
-        options: Options(headers: {"device_id": deviceId}),
+      final pref = await SharedPreferencesService.prefs;
+      final deviceId = pref.getString(kDeviceId) ?? "";
+
+      final response = await secureFetch(
+        endpoint: Env().bookingList,
+        method: 'GET',
+        headers: {"device_id": deviceId},
       );
 
+      log("booking list res:::::: ${response.data}");
+
       if (response != null && response.data['statusCode'] == 200) {
+        /// Remove extra nested list from result
+        if (response.data['result'] != null &&
+            response.data['result'] is List &&
+            response.data['result'].isNotEmpty &&
+            response.data['result'][0] is List) {
+          response.data['result'] = response.data['result'][0];
+        }
+
         bookinghistoryModel = BookinghistoryModel.fromJson(response.data);
-        log('Booking List Response: ${response.data}');
       } else {
         isBookingFailed = true;
         bookinghistoryModel = null;
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      log("Booking list error: $e");
+      log("StackTrace: $stackTrace");
+
       isBookingFailed = true;
       bookinghistoryModel = null;
     }
@@ -89,6 +96,7 @@ class LoginProvider extends ChangeNotifier {
     notifyListeners();
     return bookinghistoryModel;
   }
+
 
   String formatHistoryDate(DateTime date) {
     final today = DateTime.now();
@@ -127,25 +135,14 @@ class LoginProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await ApiService.apiMethodSetup(
-        method: ApiMethod.get,
-        url: Env().profileAPI,
+       final response = await secureFetch(
+        endpoint: Env().profileAPI,
+        method: 'GET',
       );
-      log('Profile API response: ${response?.statusCode} - ${response?.data}');
+      log('Profile API response: ${response.status} - ${response.data}');
       if (response != null && response.data['statusCode'] == 200) {
         var json = response.data;
         profileModel = ProfileModel.fromJson(json);
-
-        // Crashlytics setup
-        FirebaseCrashlytics.instance.setUserIdentifier(profileModel.id ?? "");
-        FirebaseCrashlytics.instance
-            .setCustomKey("email", profileModel.email ?? "");
-        FirebaseCrashlytics.instance
-            .setCustomKey("userId", profileModel.id ?? "");
-        FirebaseCrashlytics.instance.setCustomKey(
-          "name",
-          "${profileModel.name ?? ""} ${profileModel.lname ?? ""}",
-        );
       } else {
         log('Profile API error or invalid status code');
         ApiService.tokenRemover();

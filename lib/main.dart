@@ -1,11 +1,7 @@
-import 'dart:developer';
 import 'package:booking/services/navigation_services.dart';
-import 'package:booking/firebase_options.dart';
 import 'package:booking/view/booking/booking_flow_launcher.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
 
 /// Master switch for the booking flow.
 ///
@@ -28,9 +24,6 @@ bool isAppLoggedIn = true;
 
 /// Whether OTP verification is required for guest contact details.
 bool isOtpEnabled = false;
-
-/// Shared Firebase Analytics instance used across the module.
-final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
 
 /// Bumped every time a booking is successfully created so any mounted
 /// booking-list view can refetch itself.
@@ -75,36 +68,25 @@ const String _kStandaloneDeviceId =
 const String _kStandaloneRazorpayKey = '';
 
 /// Standalone default for the booking-flow master switch.
-const bool _kStandaloneBookingFlowEnabled = ;
+const bool _kStandaloneBookingFlowEnabled = false;
 
 /// Standalone default for email-mandatory flag.
-const bool _kStandaloneEmailMandatory = ;
+const bool _kStandaloneEmailMandatory = false;
 
 /// Standalone default for app-logged-in flag.
-const bool _kStandaloneAppLoggedIn = ;
+const bool _kStandaloneAppLoggedIn = false;
 
 /// Standalone default for OTP-enabled flag.
-const bool _kStandaloneOtpEnabled = ;
+const bool _kStandaloneOtpEnabled = false;
 
 /// Application entry point.
 ///
-/// Initialises Flutter bindings and Firebase (skipping re-initialisation when
-/// the module is embedded in a host app that already booted Firebase), then
-/// launches [Booking] with the standalone seed values defined above.
+/// Initialises Flutter bindings, then launches [Booking] with the standalone
+/// seed values defined above.
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Silence EasyLocalization's verbose logs.
   EasyLocalization.logger.enableLevels = [];
-  try {
-    // Skip re-initialisation when a host app has already booted Firebase.
-    if (Firebase.apps.isEmpty) {
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
-    }
-  } catch (e) {
-    log('Firebase initialization failed or was already initialized: $e');
-  }
 
   runApp(const Booking(
     opno: _kStandaloneOpno,
@@ -198,7 +180,7 @@ class Booking extends StatelessWidget {
       home: BookingFlowLauncher(
         opno: opno,
         token: token,
-        baseURL: baseURL,
+        // baseURL: baseURL,
         dbPtr: dbPtr,
         country: country,
         currencySymbol: currencySymbol,

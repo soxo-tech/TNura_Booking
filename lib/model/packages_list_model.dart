@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:developer';
 
 List<PackagesListModel> packagesListModelFromJson(String str) =>
     List<PackagesListModel>.from(json.decode(str).map((x) => x));
@@ -87,19 +86,19 @@ class PackagesListModel {
   factory PackagesListModel.fromJson(Map<String, dynamic> json) {
     Map<String, dynamic> decodedOtherDet3 = {};
     try {
-      if (json["itm_otherdet3"] != null &&
-          json["itm_otherdet3"].toString().trim().isNotEmpty) {
-        decodedOtherDet3 = jsonDecode(json["itm_otherdet3"]);
+      if (json["otherDetails3"] != null &&
+          json["otherDetails3"].toString().trim().isNotEmpty) {
+        decodedOtherDet3 = jsonDecode(json["otherDetails3"]);
       }
     } catch (e) {
-      log("Error decoding itm_otherdet3: $e");
+      print("Error decoding otherDetails3: $e");
       decodedOtherDet3 = {};
     }
     return PackagesListModel(
-      itmCode: json["itm_code"],
-      itmDesc: json["itm_desc"],
-      itmShortnm: json["itm_shortnm"],
-      itmTime: json["itm_time"],
+      itmCode: json["code"],
+      itmDesc: json["description"],
+      itmShortnm: json["shortName"],
+      itmTime: json["time"],
       itmDeptptr: json["itm_deptptr"],
       itmGroupptr: json["itm_groupptr"],
       itmTaxptr: json["itm_taxptr"],
@@ -115,13 +114,13 @@ class PackagesListModel {
       cngdDt: json["cngd_dt"],
       itmDisper: json["itm_disper"],
       itmDescml: json["itm_descml"],
-      itmGender: json["itm_gender"],
-      itmShortdetails: json["itm_shortdetails"],
-      itmDetails: json["itm_details"],
-      itmEligibility: json["itm_eligibility"],
-      itmOtherdet1: json["itm_otherdet1"],
-      itmOtherdet2: json["itm_otherdet2"],
-      itmOtherdet3: json["itm_otherdet3"],
+      itmGender: json["gender"],
+      itmShortdetails: json["shortDetails"],
+      itmDetails: json["details"],
+      itmEligibility: json["eligibility"],
+      itmOtherdet1: json["otherDetails1"],
+      itmOtherdet2: json["otherDetails2"],
+      itmOtherdet3: json["otherDetails3"],
       questions: (decodedOtherDet3.containsKey("Questions") &&
               decodedOtherDet3["Questions"] is List)
           ? (decodedOtherDet3["Questions"] as List)
@@ -136,22 +135,22 @@ class PackagesListModel {
               .map((e) => e as Map<String, dynamic>)
               .toList()
           : [],
-      itmMobdesc: json["itm_mobdesc"],
-      itmSlotdoctorptr: json["itm_slotdoctorptr"],
+      itmMobdesc: json["mobileDescription"],
+      itmSlotdoctorptr: json["slotDoctorPointer"],
       itmLanguageString: json["itm_language_string"],
       itmOtherdetail: json["itm_otherdetail"],
       irId: json["ir_id"],
       irItemptr: json["ir_itemptr"],
       irRatecatptr: json["ir_ratecatptr"],
-      irRate: json["ir_rate"],
+      irRate: json["rate"],
     );
   }
 
   Map<String, dynamic> toJson() => {
-        "itm_code": itmCode,
-        "itm_desc": itmDesc,
-        "itm_shortnm": itmShortnm,
-        "itm_time": itmTime,
+        "code": itmCode,
+        "description": itmDesc,
+        "shortName": itmShortnm,
+        "time": itmTime,
         "itm_deptptr": itmDeptptr,
         "itm_groupptr": itmGroupptr,
         "itm_taxptr": itmTaxptr,
@@ -167,21 +166,21 @@ class PackagesListModel {
         "cngd_dt": cngdDt,
         "itm_disper": itmDisper,
         "itm_descml": itmDescml,
-        "itm_gender": itmGender,
-        "itm_shortdetails": itmShortdetails,
-        "itm_details": itmDetails,
-        "itm_eligibility": itmEligibility,
-        "itm_otherdet1": itmOtherdet1,
-        "itm_otherdet2": itmOtherdet2,
-        "itm_otherdet3": itmOtherdet3,
-        "itm_mobdesc": itmMobdesc,
-        "itm_slotdoctorptr": itmSlotdoctorptr,
+        "gender": itmGender,
+        "shortDetails": itmShortdetails,
+        "details": itmDetails,
+        "eligibility": itmEligibility,
+        "otherDetails1": itmOtherdet1,
+        "otherDetails2": itmOtherdet2,
+        "otherDetails3": itmOtherdet3,
+        "mobileDescription": itmMobdesc,
+        "slotDoctorPointer": itmSlotdoctorptr,
         "itm_language_string": itmLanguageString,
         "itm_otherdetail": itmOtherdetail,
         "ir_id": irId,
         "ir_itemptr": irItemptr,
         "ir_ratecatptr": irRatecatptr,
-        "ir_rate": irRate,
+        "rate": irRate,
       };
 }
 

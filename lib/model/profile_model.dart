@@ -233,6 +233,26 @@ class ProfileModel {
       _$ProfileModelFromJson(json);
 
   Map<String, dynamic> toJson() => _$ProfileModelToJson(this);
+
+  /// Age in years to display/use for booking.
+  ///
+  /// The profile API does not always return [calculatedAge], so fall back to
+  /// computing it from [dob] and finally the stored [ageYear].
+  int? get effectiveAge {
+    if (calculatedAge != null) return calculatedAge;
+
+    if (dob != null) {
+      final now = DateTime.now();
+      int age = now.year - dob!.year;
+      if (now.month < dob!.month ||
+          (now.month == dob!.month && now.day < dob!.day)) {
+        age--;
+      }
+      if (age >= 0) return age;
+    }
+
+    return ageYear;
+  }
 }
 
 @JsonSerializable()

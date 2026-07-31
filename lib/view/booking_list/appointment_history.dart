@@ -3,6 +3,7 @@
 import 'dart:convert';
 
 import 'package:booking/core/extensions.dart';
+import 'package:booking/main.dart';
 import 'package:booking/provider/guests_provider.dart';
 import 'package:booking/provider/login_provider.dart';
 import 'package:booking/provider/package_provider.dart';
@@ -67,6 +68,7 @@ class _AppointmentHistoryState extends State<AppointmentHistory>
 
   @override
   void dispose() {
+    bookingListRefreshTick.removeListener(_onBookingChanged);
     _controller.dispose();
     super.dispose();
   }
@@ -89,13 +91,21 @@ class _AppointmentHistoryState extends State<AppointmentHistory>
         curve: const Interval(0.0, 0.8, curve: Curves.easeOutBack),
       ),
     );
+    // Refetch whenever a booking is created elsewhere (e.g. the package flow,
+    // which runs in a separate provider scope and pops back without
+    // rebuilding this screen). See [bookingListRefreshTick].
+    bookingListRefreshTick.addListener(_onBookingChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadInitialData().then(
-        (value) {
-          _controller.forward();
-        },
-      );
+      _loadInitialData().then((value) {
+        _controller.forward();
+      });
     });
+  }
+
+  void _onBookingChanged() {
+    if (!mounted) return;
+    // Refresh the user's bookings so the newly created appointment appears.
+    Provider.of<LoginProvider>(context, listen: false).getBookingList();
   }
 
   Future<void> _loadInitialData() async {
@@ -103,10 +113,7 @@ class _AppointmentHistoryState extends State<AppointmentHistory>
     final packages = Provider.of<PackagesProvider>(context, listen: false);
 
     try {
-      await Future.wait([
-        packages.getPackagesList(),
-        login.getBookingList(),
-      ]);
+      await Future.wait([packages.getPackagesList(), login.getBookingList()]);
     } finally {
       if (mounted) {
         setState(() {
@@ -143,7 +150,8 @@ class _AppointmentHistoryState extends State<AppointmentHistory>
         builder: (context, provider, child) {
           final results = provider.bookinghistoryModel?.result;
 
-          final isLoading = provider.isBookingLoading ||
+          final isLoading =
+              provider.isBookingLoading ||
               packagesProvider.isPackagesListLoading ||
               packagesProvider.packagesList.isEmpty;
 
@@ -155,32 +163,42 @@ class _AppointmentHistoryState extends State<AppointmentHistory>
             child: isLoading
                 ? const AppointmentHistoryShimmer()
                 : hasError || isEmpty
-                    ? const SizedBox()
-                    : AnimatedOpacity(
-                        opacity: opacity,
-                        duration: const Duration(milliseconds: 400),
-                        child: ScaleTransition(
-                          scale: _scaleAnim,
-                          child: ListView.separated(
+                ? const SizedBox()
+                : AnimatedOpacity(
+                    opacity: opacity,
+                    duration: const Duration(milliseconds: 400),
+                    child: ScaleTransition(
+                      scale: _scaleAnim,
+                      child: Builder(
+                        builder: (context) {
+                          // Only render bookings with a usable date and a
+                          // matching package; otherwise the ListView's
+                          // separators still add spacing for the empty
+                          // placeholder rows, leaving large visual gaps.
+                          final validResults = results.where((booking) {
+                            return booking.daDate != null &&
+                                packagesProvider.getPackageByCode(
+                                      booking.daPackagetypevalue,
+                                    ) !=
+                                    null;
+                          }).toList();
+
+                          return ListView.separated(
                             key: PageStorageKey("appointment_list"),
                             padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
-                            itemCount: results.length,
+                            itemCount: validResults.length,
                             separatorBuilder: (_, __) =>
                                 const SizedBox(height: 10),
                             itemBuilder: (context, index) {
-                              final booking = results[index];
-                              if (booking.daDate == null)
-                                return const SizedBox();
+                              final booking = validResults[index];
 
                               DateTime dt = booking.daDate!;
 
-                              final formattedDate =
-                                  loginProvider.formatHistoryDate(dt);
+                              final formattedDate = loginProvider
+                                  .formatHistoryDate(dt);
                               final package = packagesProvider.getPackageByCode(
                                 booking.daPackagetypevalue,
-                              );
-
-                              if (package == null) return const SizedBox();
+                              )!;
 
                               final packageName =
                                   booking.packageDetails?.description ?? 'N/A';
@@ -188,13 +206,15 @@ class _AppointmentHistoryState extends State<AppointmentHistory>
                                   booking.packageDetails?.slotDoctorPtr;
                               Map<String, dynamic> extraData = {};
                               try {
-                                extraData =
-                                    jsonDecode(package.itmOtherdet3 ?? '{}');
+                                extraData = jsonDecode(
+                                  package.itmOtherdet3 ?? '{}',
+                                );
                               } catch (_) {}
 
                               final packageImage =
                                   booking.packageDetails?.image;
-                              final hasValidImage = packageImage != null &&
+                              final hasValidImage =
+                                  packageImage != null &&
                                   packageImage.toString().isNotEmpty;
 
                               final String? packageBackground =
@@ -204,14 +224,17 @@ class _AppointmentHistoryState extends State<AppointmentHistory>
                               /// STAGGERED ANIMATION
                               return TweenAnimationBuilder(
                                 duration: Duration(
-                                    milliseconds: 400 + (delayIndex * 80)),
+                                  milliseconds: 400 + (delayIndex * 80),
+                                ),
                                 tween: Tween<double>(begin: 0, end: 1),
                                 builder: (context, double value, child) {
                                   return Opacity(
                                     opacity: value,
                                     child: Transform.translate(
-                                      offset: Offset(0,
-                                          20 * (1 - value)), // reduced movement
+                                      offset: Offset(
+                                        0,
+                                        20 * (1 - value),
+                                      ), // reduced movement
                                       child: child,
                                     ),
                                   );
@@ -221,19 +244,20 @@ class _AppointmentHistoryState extends State<AppointmentHistory>
                                 child: GestureDetector(
                                   onTap: () {
                                     push(
+                                      context,
+                                      _withModuleProviders(
                                         context,
-                                        _withModuleProviders(
-                                          context,
-                                          AppointmentDetail(
-                                            addonPackageList:
-                                                booking.addOnPackageDetails,
-                                            bookingId: booking.daId,
-                                            packageName: packageName,
-                                            packageImage: packageImage,
-                                            packageBackground: packageBackground,
-                                            packageDrId: packageDrId,
-                                          ),
-                                        ));
+                                        AppointmentDetail(
+                                          addonPackageList:
+                                              booking.addOnPackageDetails,
+                                          bookingId: booking.daId,
+                                          packageName: packageName,
+                                          packageImage: packageImage,
+                                          packageBackground: packageBackground,
+                                          packageDrId: packageDrId,
+                                        ),
+                                      ),
+                                    );
                                   },
                                   child: Container(
                                     padding: const EdgeInsets.all(12),
@@ -254,16 +278,19 @@ class _AppointmentHistoryState extends State<AppointmentHistory>
                                           height: 64,
                                           width: 64,
                                           decoration: BoxDecoration(
-                                            gradient: packageBackground
+                                            gradient:
+                                                packageBackground
                                                     ?.parseGradient() ??
                                                 AppColors
                                                     .defaultPackageGradient,
-                                            borderRadius:
-                                                BorderRadius.circular(8),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
                                           ),
                                           child: ClipRRect(
-                                            borderRadius:
-                                                BorderRadius.circular(8),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
                                             child: hasValidImage
                                                 ? CachedNetworkImage(
                                                     imageUrl: packageImage,
@@ -319,9 +346,11 @@ class _AppointmentHistoryState extends State<AppointmentHistory>
                                 ),
                               );
                             },
-                          ),
-                        ),
+                          );
+                        },
                       ),
+                    ),
+                  ),
           );
         },
       ),
