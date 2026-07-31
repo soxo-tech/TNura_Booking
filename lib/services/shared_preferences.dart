@@ -37,6 +37,7 @@ class SharedPreferenceController {
     String? currencySymbol,
     String? deviceId,
     String? razorpayKey,
+    String? opno,
   }) async {
     final pref = await SharedPreferencesService.prefs;
     if (baseURL != null) {
@@ -44,6 +45,10 @@ class SharedPreferenceController {
     }
     if (dbPtr != null) {
       await pref.setString("dbptr", dbPtr);
+    }
+    // Sent as the `realId` request header on every module API call.
+    if (opno != null) {
+      await pref.setString("realId", opno);
     }
     if (country != null) {
       await pref.setString(kSelectedCountry, country);

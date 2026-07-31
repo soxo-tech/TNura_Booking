@@ -7,8 +7,10 @@ import 'package:booking/provider/guests_provider.dart';
 import 'package:booking/provider/login_provider.dart';
 import 'package:booking/provider/package_provider.dart';
 import 'package:booking/services/shared_preferences.dart';
+import 'package:booking/view/booking/booking.dart';
 import 'package:booking/view/packages/packages_detail.dart';
 import 'package:booking/widgets/app_space_widget.dart';
+import 'package:booking/widgets/custom_appbar.dart';
 import 'package:booking/widgets/packages_shimmers.dart';
 import 'package:booking/widgets/refracted_button.dart';
 import 'package:booking/widgets/refracted_text.dart';
@@ -49,6 +51,8 @@ class _PackagesState extends State<Packages> with TickerProviderStateMixin {
   static const double _bottomBarHeight = 140;
   bool _showFixedBottomBar = false; // start hidden, animate in after build
   String currency = "";
+  final LoginProvider loginProvider = LoginProvider();
+  int? loadingIndex;
 
   @override
   void initState() {
@@ -61,8 +65,10 @@ class _PackagesState extends State<Packages> with TickerProviderStateMixin {
 
     // Boot‑strap provider
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
       final provider = Provider.of<PackagesProvider>(context, listen: false);
       await provider.init(context);
+      // provider.getPackagesList();
       final prefs = await SharedPreferencesService.prefs;
       final isBookingFlowEnabled =
           prefs.getBool(kIsBookingFlowEnabled) ?? false;
@@ -96,15 +102,23 @@ class _PackagesState extends State<Packages> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
+      appBar: widget.isFromTab
+          ? null
+          : customAppBar(
+              title: 'Packages'.tr(),
+              context: context,
+              onBack: () {
+                Navigator.pop(context);
+              },
+            ),
       backgroundColor: AppColors.backgroundBlueLight,
       body: Stack(
         children: [
           Consumer<PackagesProvider>(
             builder: (context, packageProvider, _) {
-              if (packageProvider.isInitializing ||
-                  packageProvider.isBranchListLoadingInitial) {
-                return const PackagesShimmer();
+              if ((packageProvider.isInitializing ||
+                  packageProvider.isBranchListLoadingInitial)) {
+                return const PackagesShimmer(); /* const Center(child: CircularProgressIndicator()) */
               }
 
               return CustomScrollView(
@@ -195,62 +209,64 @@ class _PackagesState extends State<Packages> with TickerProviderStateMixin {
   SliverPadding _buildPackagesList(PackagesProvider provider) {
     return SliverPadding(
       padding: const EdgeInsets.fromLTRB(20, 30, 20, 20),
-      sliver: Builder(builder: (context) {
-        if ((provider.selectedBranch == null ||
-                provider.selectedBranch!.isEmpty) &&
-            provider.selectedCountry != null &&
-            provider.bookingFlowBranches.isNotEmpty) {
-          return SliverFillRemaining(
-            hasScrollBody: false,
-            child: Center(child: Text('Please choose a branch'.tr())),
-          );
-        }
+      sliver: Builder(
+        builder: (context) {
+          if ((provider.selectedBranch == null ||
+                  provider.selectedBranch!.isEmpty) &&
+              provider.selectedCountry != null &&
+              provider.bookingFlowBranches.isNotEmpty) {
+            return SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(child: Text('Please choose a branch'.tr())),
+            );
+          }
 
-        if (provider.isPackagesListLoading) {
-          return const SliverToBoxAdapter(child: PackagesShimmer());
-        }
+          if (provider.isPackagesListLoading) {
+            return const SliverToBoxAdapter(child: PackagesShimmer());
+          }
 
-        if (provider.packagesList.isEmpty) {
-          return SliverFillRemaining(
-            hasScrollBody: false,
-            child: Center(child: Text('No Packages Available'.tr())),
-          );
-        }
+          if (provider.packagesList.isEmpty) {
+            return SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(child: Text('No Packages Available'.tr())),
+            );
+          }
 
-        final total = provider.packagesList.length;
-        return AnimationLimiter(
-          child: SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                if (index.isOdd) return setHeight(16);
-                final itemIndex = index ~/ 2;
-                final package = provider.packagesList[itemIndex];
-                return InkWell(
-                  onTap: () => pushWithAnimation(
-                    context,
-                    PackageDetail(
-                      package,
-                      currency: currency,
-                    ),
-                  ),
-                  child: AnimationConfiguration.staggeredList(
-                    position: itemIndex,
-                    delay: const Duration(milliseconds: 200),
-                    child: SlideAnimation(
-                      verticalOffset: 200,
-                      child: FadeInAnimation(
-                        duration: const Duration(milliseconds: 500),
-                        child: packageCard(itemIndex, package, provider),
+          final total = provider.packagesList.length;
+          return AnimationLimiter(
+            child: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  if (index.isOdd) return setHeight(16);
+                  final itemIndex = index ~/ 2;
+                  final package = provider.packagesList[itemIndex];
+                  return InkWell(
+                    onTap: () => pushWithAnimation(
+                      context,
+                      PackageDetail(
+                        package,
+                        currency: currency,
                       ),
                     ),
-                  ),
-                );
-              },
-              childCount: total * 2 - 1,
+                    child: AnimationConfiguration.staggeredList(
+                      position: itemIndex,
+                      delay: const Duration(milliseconds: 200),
+                      child: SlideAnimation(
+                        verticalOffset: 200,
+                        child: FadeInAnimation(
+                          duration: const Duration(milliseconds: 500),
+                          child: packageCard(itemIndex, package, provider),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+                childCount: total * 2 - 1,
+              ),
             ),
-          ),
-        );
-      },),
+          );
+        },
+      ),
     );
   }
 
@@ -297,14 +313,13 @@ class _PackagesState extends State<Packages> with TickerProviderStateMixin {
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount: provider.bookingFlowBranches.length,
-                          separatorBuilder: (_, _) => setHeight(10),
+                          separatorBuilder: (_, __) => setHeight(10),
                           itemBuilder: (_, index) => GestureDetector(
                             onTap: () async {
                               await provider.handleBranchSelection(
                                 context,
                                 index,
                                 isFromBranchList: true,
-                                shouldNavigate: false,
                               );
                             },
                             child: Container(
@@ -318,8 +333,8 @@ class _PackagesState extends State<Packages> with TickerProviderStateMixin {
                                     MainAxisAlignment.spaceBetween,
                                 children: [
                                   RefractedText(
-                                    text: provider.bookingFlowBranches[index]
-                                            .brDesc ??
+                                    text: provider
+                                            .bookingFlowBranches[index].desc ??
                                         '',
                                     fontSize: 18,
                                     fontWeight:
@@ -330,7 +345,8 @@ class _PackagesState extends State<Packages> with TickerProviderStateMixin {
                                   ),
                                   if (provider.selectedBranchIndex == index)
                                     SvgPicture.asset(
-                                        bookingAssetPath('assets/svg/selected_country.svg'),),
+                                      bookingAssetPath('assets/svg/selected_country.svg'),
+                                    ),
                                 ],
                               ),
                             ),
@@ -346,13 +362,6 @@ class _PackagesState extends State<Packages> with TickerProviderStateMixin {
   }
 
   void pushWithAnimation(BuildContext context, Widget page) {
-    // The host app's Navigator sits above the MultiProvider in
-    // BookingFlowLauncher, so pushed routes can't see the providers from this
-    // screen unless we forward the existing instances.
-    final guestProvider = context.read<GuestProvider>();
-    final packagesProvider = context.read<PackagesProvider>();
-    final loginProvider = context.read<LoginProvider>();
-
     Navigator.of(context).push(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 500),
@@ -360,24 +369,17 @@ class _PackagesState extends State<Packages> with TickerProviderStateMixin {
         // CHANGE THIS TO TRUE
         opaque: true,
         barrierDismissible: false,
-        pageBuilder: (context, animation, secondaryAnimation) => MultiProvider(
-          providers: [
-            ChangeNotifierProvider<GuestProvider>.value(value: guestProvider),
-            ChangeNotifierProvider<PackagesProvider>.value(
-              value: packagesProvider,
-            ),
-            ChangeNotifierProvider<LoginProvider>.value(value: loginProvider),
-          ],
-          child: page,
-        ),
+        pageBuilder: (context, animation, secondaryAnimation) => page,
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           final slideAnimation = Tween<Offset>(
             begin: const Offset(0, 0.1),
             end: Offset.zero,
-          ).animate(CurvedAnimation(
-            parent: animation,
-            curve: Curves.easeOutCubic,
-          ));
+          ).animate(
+            CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutCubic,
+            ),
+          );
 
           final fadeAnimation = CurvedAnimation(
             parent: animation,
@@ -409,7 +411,9 @@ class _PackagesState extends State<Packages> with TickerProviderStateMixin {
       width: double.infinity,
       decoration: const BoxDecoration(
         borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(8), topRight: Radius.circular(8),),
+          topLeft: Radius.circular(8),
+          topRight: Radius.circular(8),
+        ),
         color: AppColors.startBookingButtonTabColor,
       ),
       child: Column(
@@ -431,10 +435,37 @@ class _PackagesState extends State<Packages> with TickerProviderStateMixin {
             onTap: () async {
               final prefs = await SharedPreferencesService.prefs;
               final selectedIndex = prefs.getInt('selected_branch_index') ?? 0;
-              if (!mounted) return;
+
               await packageProvider.handleBranchSelection(
-                  context, selectedIndex,
-                  shouldNavigate: true, isFromBranchList: false,);
+                context,
+                selectedIndex,
+                isFromBranchList: false,
+              );
+
+              if (!mounted) return;
+              // The host Navigator sits above the launcher's MultiProvider, so
+              // forward the booking providers onto the pushed route or
+              // AddGuestsDetail throws ProviderNotFoundError.
+              final guestProvider = context.read<GuestProvider>();
+              final packagesProviderRef = context.read<PackagesProvider>();
+              final loginProvider = context.read<LoginProvider>();
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => MultiProvider(
+                    providers: [
+                      ChangeNotifierProvider<GuestProvider>.value(
+                          value: guestProvider),
+                      ChangeNotifierProvider<PackagesProvider>.value(
+                          value: packagesProviderRef),
+                      ChangeNotifierProvider<LoginProvider>.value(
+                          value: loginProvider),
+                    ],
+                    child: AddGuestsDetail(),
+                  ),
+                  settings: const RouteSettings(name: '/AddGuestsDetail'),
+                ),
+              );
             },
           ),
         ],
@@ -443,7 +474,10 @@ class _PackagesState extends State<Packages> with TickerProviderStateMixin {
   }
 
   Widget packageCard(
-      int index, PackagesListModel package, PackagesProvider provider,) {
+    int index,
+    PackagesListModel package,
+    PackagesProvider provider,
+  ) {
     final data =
         jsonDecode(package.itmOtherdet3 ?? '{}') as Map<String, dynamic>;
     final String gradientString =
@@ -451,7 +485,9 @@ class _PackagesState extends State<Packages> with TickerProviderStateMixin {
 
     return Container(
       decoration: BoxDecoration(
-          color: Colors.white, borderRadius: BorderRadius.circular(7),),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(7),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -461,7 +497,9 @@ class _PackagesState extends State<Packages> with TickerProviderStateMixin {
             width: double.infinity,
             decoration: BoxDecoration(
               borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(8), topRight: Radius.circular(8),),
+                topLeft: Radius.circular(8),
+                topRight: Radius.circular(8),
+              ),
               gradient: gradientString.parseGradient(),
             ),
             child: Stack(
@@ -489,18 +527,17 @@ class _PackagesState extends State<Packages> with TickerProviderStateMixin {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Image.asset(bookingAssetPath('assets/images/timer.png'),
-                            height: 16, width: 16,),
+                        Image.asset(
+                          bookingAssetPath('assets/images/timer.png'),
+                          height: 16,
+                          width: 16,
+                        ),
                         const SizedBox(width: 4),
-                        Flexible(
-                          child: RefractedText(
-                            textColor: AppColors.primaryDark,
-                            text: (package.itmTime ?? '').tr(),
-                            fontWeight: FontWeight.w600,
-                            textAlign: TextAlign.center,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                        RefractedText(
+                          textColor: AppColors.primaryDark,
+                          text: (package.itmTime ?? '').tr(),
+                          fontWeight: FontWeight.w600,
+                          textAlign: TextAlign.center,
                         ),
                       ],
                     ),
@@ -523,7 +560,8 @@ class _PackagesState extends State<Packages> with TickerProviderStateMixin {
                 const SizedBox(height: 2),
                 if (package.irRate != null && package.irRate! > 0)
                   RefractedText(
-                    text: '$currency ${package.irRate}',
+                    text: /* ${_getCurrencySymbol(context)} */
+                        '$currency ${package.irRate}',
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     textColor: AppColors.packageTextPrimary,
@@ -538,28 +576,155 @@ class _PackagesState extends State<Packages> with TickerProviderStateMixin {
                     fontWeight: FontWeight.w400,
                     textColor: AppColors.packageTextPrimary,
                   ),
+                const SizedBox(
+                  height: 10,
+                ),
                 Align(
                   alignment: Alignment.bottomRight,
-                  child: GestureDetector(
-                    onTap: () => pushWithAnimation(
-                      context,
-                      PackageDetail(
-                        package,
-                        currency: currency,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      GestureDetector(
+                        onTap: () => pushWithAnimation(
+                          context,
+                          PackageDetail(
+                            package,
+                            currency: currency,
+                          ),
+                        ),
+                        child: Transform.translate(
+                          offset: const Offset(0, 1),
+                          child: Column(
+                            children: [
+                              RefractedText(
+                                text: 'LEARN MORE'.tr(),
+                                fontSize: 12,
+                                maxLines: 3,
+                                overflow: TextOverflow.ellipsis,
+                                fontWeight: FontWeight.w500,
+                                textColor: AppColors.packageTextPrimary,
+                                // decoration: TextDecoration.underline,
+                              ),
+                              Container(
+                                height: 1,
+                                width: 70,
+                                color: Colors.grey.shade300,
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
-                    child: Transform.translate(
-                      offset: const Offset(0, 4),
-                      child: RefractedText(
-                        text: 'LEARN MORE'.tr(),
-                        fontSize: 12,
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                        fontWeight: FontWeight.w500,
-                        textColor: AppColors.packageTextPrimary,
-                        // decoration: TextDecoration.underline,
+                      const SizedBox(
+                        width: 10,
                       ),
-                    ),
+                      // The host passes this flag into the launcher, which sets
+                      // the module-level [isBookingFlowEnabled] global. Booking's
+                      // RemoteConfigService is never registered as a Provider
+                      // (embedded or standalone), so reading it here crashed with
+                      // ProviderNotFoundError once a package card rendered.
+                      if (isBookingFlowEnabled)
+                        InkWell(
+                          onTap: () async {
+                            provider.setBookingLoading(true);
+                            setState(() {
+                              loadingIndex = index;
+                            });
+                            try {
+                              final gp = Provider.of<GuestProvider>(
+                                context,
+                                listen: false,
+                              );
+                              gp.showConfirmAppointmentDetails = false;
+
+                              if (gp.guests.isNotEmpty) {
+                                gp.guests.first.step =
+                                    GuestStep.appointmentScheduling;
+                              }
+
+                              await gp.selectPackageAndProceed(
+                                context,
+                                package,
+                              );
+
+                              final prefs =
+                                  await SharedPreferencesService.prefs;
+                              final selectedIndex =
+                                  prefs.getInt('selected_branch_index') ?? 0;
+
+                              await provider.handleBranchSelection(
+                                context,
+                                selectedIndex,
+                                isFromBranchList: false,
+                              );
+
+                              if (!mounted) return;
+                              // The host Navigator sits above the launcher's
+                              // MultiProvider, so forward the booking providers
+                              // onto the pushed route or AddGuestsDetail throws
+                              // ProviderNotFoundError.
+                              final guestProvider =
+                                  context.read<GuestProvider>();
+                              final packagesProviderRef =
+                                  context.read<PackagesProvider>();
+                              final loginProvider =
+                                  context.read<LoginProvider>();
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => MultiProvider(
+                                    providers: [
+                                      ChangeNotifierProvider<GuestProvider>
+                                          .value(value: guestProvider),
+                                      ChangeNotifierProvider<PackagesProvider>
+                                          .value(value: packagesProviderRef),
+                                      ChangeNotifierProvider<LoginProvider>
+                                          .value(value: loginProvider),
+                                    ],
+                                    child: AddGuestsDetail(),
+                                  ),
+                                  settings: const RouteSettings(
+                                    name: '/AddGuestsDetail',
+                                  ),
+                                ),
+                              );
+                            } finally {
+                              provider.setBookingLoading(false);
+                            }
+                          },
+                          child: Container(
+                            width: 80,
+                            height: 30,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(4),
+                              color: provider.isBookingNowButtonLoading &&
+                                      loadingIndex == index
+                                  ? const Color(0xFFF1B426).withOpacity(0.4)
+                                  : const Color(0xFFF1B426),
+                            ),
+                            child: Center(
+                              child: provider.isBookingNowButtonLoading &&
+                                      loadingIndex == index
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: AppColors.primaryDark,
+                                      ),
+                                    )
+                                  : const Text(
+                                      'Book Now',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.primaryDark,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ],

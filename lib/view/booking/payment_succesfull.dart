@@ -4,7 +4,6 @@ import 'dart:developer';
 import 'dart:io';
 import 'package:booking/core/colors.dart';
 import 'package:booking/core/constants.dart';
-import 'package:booking/main.dart';
 import 'package:booking/provider/guests_provider.dart';
 import 'package:booking/services/shared_preferences.dart';
 import 'package:booking/widgets/custom_appbar.dart';
@@ -49,12 +48,6 @@ class _PaymentSuccessfulState extends State<PaymentSuccessful> {
         DateFormat('dd MMM yyyy, HH:mm:ss').format(DateTime.now());
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       context.read<GuestProvider>().setPaymentProcessing(false);
-      await analytics.logEvent(
-        name: 'Appointment_created',
-        parameters: {
-          'nura_event': 'Appointment confirmed from App',
-        },
-      );
     });
     _appointments = (widget.appointmentJson['data'] as List<dynamic>)
         .cast<Map<String, dynamic>>();

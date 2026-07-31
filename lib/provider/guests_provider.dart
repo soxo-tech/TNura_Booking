@@ -17,13 +17,13 @@ import 'package:booking/provider/login_provider.dart';
 import 'package:booking/provider/package_provider.dart';
 import 'package:booking/services/api_services.dart';
 import 'package:booking/services/navigation_services.dart';
+import 'package:booking/services/security_service/secure_fetch.dart';
 import 'package:booking/services/shared_preferences.dart';
 import 'package:booking/view/booking/payment_failure.dart' show PaymentFailure;
 import 'package:booking/view/booking/payment_succesfull.dart';
 import 'package:booking/widgets/refracted_text.dart';
 import 'package:dio/dio.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:open_filex/open_filex.dart';
@@ -384,12 +384,13 @@ class GuestProvider extends ChangeNotifier {
   ) async {
     log('paymentid: $paymentId');
     try {
-      final res = await ApiService.apiMethodSetup(
-        method: ApiMethod.get,
-        url: Env().getPaymentStatus(paymentId: paymentId),
+      final res = await secureFetch(
+        method: 'GET',
+        endpoint: Env().getPaymentStatus(paymentId: paymentId),
         dbPtr: (await SharedPreferencesService.prefs)
             .getString(kSelectedBranchDbptr),
       );
+      
 
       final data = res?.data;
       log('Payment status response: $data');
@@ -454,12 +455,13 @@ class GuestProvider extends ChangeNotifier {
   Future<void> getAvailableAddOnTest(
       String packageTypeValue, BuildContext context) async {
     try {
-      final res = await ApiService.apiMethodSetup(
-        method: ApiMethod.get,
-        url: Env().getAddOnTests(packageTypeValue: packageTypeValue),
+      final res = await secureFetch(
+        method: 'GET',
+        endpoint: Env().getAddOnTests(packageTypeValue: packageTypeValue),
         dbPtr: (await SharedPreferencesService.prefs)
             .getString(kSelectedBranchDbptr),
       );
+     
 
       final data = res?.data;
       log('Add-on tests response: $data');
@@ -490,7 +492,7 @@ class GuestProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> validateCoupon(BuildContext context) async {
+ Future<bool> validateCoupon(BuildContext context) async {
     final guestList = guests;
     final prefs = await SharedPreferencesService.prefs;
     String? branchDbptr = prefs.getString(kSelectedBranchDbptr);
@@ -506,17 +508,18 @@ class GuestProvider extends ChangeNotifier {
     log('Coupon Payload: ${jsonEncode(data)}');
 
     try {
-      var response = await ApiService.apiMethodSetup(
-        method: ApiMethod.post,
-        url: Env().validateCoupon,
-        data: jsonEncode(data),
+      var response = await secureFetch(
+        method: 'POST',
+        endpoint: Env().validateCoupon,
+        body: data,
         dbPtr: branchDbptr,
       );
 
-      log('Coupon Response: ${jsonEncode(response?.data)}');
+      log('Coupon Response: ${jsonEncode(response.data)}');
 
-      if ((response?.statusCode == 200 || response?.statusCode == 201) &&
-          response?.data['success'] == true) {
+      if ((response.data['status_code'] == 200 ||
+              response.data['status_code'] == 201) &&
+          response.data['success'] == true) {
         return true;
       } else {
         showSnackBar(context, "Invalid coupon. Try again.");
@@ -527,6 +530,7 @@ class GuestProvider extends ChangeNotifier {
       return false;
     }
   }
+
 
   Future<bool> getCoupon(BuildContext context) async {
     final guestList = guests;
@@ -544,18 +548,18 @@ class GuestProvider extends ChangeNotifier {
     log('Coupon Payload: ${jsonEncode(data)}');
 
     try {
-      var response = await ApiService.apiMethodSetup(
-        method: ApiMethod.post,
-        url: Env().applyCoupon,
-        data: jsonEncode(data),
+      var response = await secureFetch(
+        method: 'POST',
+        endpoint: Env().applyCoupon,
+        body: jsonEncode(data),
         dbPtr: branchDbptr,
       );
 
-      log('Coupon Response: ${jsonEncode(response?.data)}');
+      log('Coupon Response: ${jsonEncode(response.data)}');
 
-      if ((response?.statusCode == 200 || response?.statusCode == 201) &&
-          response?.data['success'] == true) {
-        final data = response?.data['data'];
+      if ((response.status == 200 || response.status == 201) &&
+          response.data['success'] == true) {
+        final data = response.data['data'];
 
         couponValue = data['coupon_value'] ?? 0;
         couponType = data['value_type'] ?? "A";
@@ -661,6 +665,12 @@ class GuestProvider extends ChangeNotifier {
         "Payment successful. Appointment will be available shortly.",
       );
 
+      // Payment already succeeded server-side even though the appointment
+      // hasn't shown up in our polling window yet — signal a refetch so the
+      // booking-list view can pick it up once the backend catches up, rather
+      // than requiring an app restart.
+      bookingListRefreshTick.value++;
+
       nav.pop(); // or navigate to home
       return;
     }
@@ -671,15 +681,17 @@ class GuestProvider extends ChangeNotifier {
       context: nav.context,
     );
 
+    // A new appointment now exists — signal any mounted booking-list view
+    // (e.g. the embedded list on the host's home page) to refetch so it shows
+    // up without waiting for an app restart. Bump this regardless of whether
+    // the detail-enrichment call below succeeds: the source of truth is the
+    // server's booking-list endpoint, not this client-side detail fetch.
+    bookingListRefreshTick.value++;
+
     if (details == null) {
       _setFetchingPaymentDetails(false);
       return;
     }
-
-    // A new appointment now exists — signal any mounted booking-list view
-    // (e.g. the embedded list on the host's home page) to refetch so it shows
-    // up without waiting for an app restart.
-    bookingListRefreshTick.value++;
 
     _setFetchingPaymentDetails(false);
 
@@ -711,17 +723,20 @@ class GuestProvider extends ChangeNotifier {
       log("🔁 Checking appointment_id (Attempt $attempt)");
 
       try {
-        final res = await ApiService.apiMethodSetup(
-          method: ApiMethod.get,
-          url: Env().getPaymentStatus(paymentId: paymentId),
+        final res = await secureFetch(
+          method: 'GET',
+          endpoint: Env().getPaymentStatus(paymentId: paymentId),
           dbPtr: (await SharedPreferencesService.prefs)
               .getString(kSelectedBranchDbptr),
         );
 
-        final data = res?.data;
+        final responseData =
+            res.data is String ? jsonDecode(res.data) : res.data;
 
-        if (data != null && data['status'] == 200 && data['success'] == true) {
-          final list = (data['data'] as List?) ?? [];
+        if (responseData is Map &&
+            responseData['status'] == 200 &&
+            responseData['success'] == true) {
+          final list = responseData['data'] as List? ?? [];
 
           if (list.isNotEmpty) {
             final ids = list
@@ -738,7 +753,7 @@ class GuestProvider extends ChangeNotifier {
 
         log("⏳ appointment_id not ready yet...");
       } catch (e) {
-        log("Polling error: $e");
+        log("❌ Polling error: $e");
       }
 
       await Future.delayed(const Duration(seconds: delaySeconds));
@@ -747,7 +762,6 @@ class GuestProvider extends ChangeNotifier {
     log("❌ appointment_id not received after retries");
     return null;
   }
-
   void _handlePaymentError(
     BuildContext context,
     PaymentFailureResponse response,
@@ -1330,10 +1344,10 @@ class GuestProvider extends ChangeNotifier {
       final prefs = await SharedPreferencesService.prefs;
       String? branchDbptr = prefs.getString(kSelectedBranchDbptr);
 
-      var response = await ApiService.apiMethodSetup(
-        method: ApiMethod.post,
-        url: Env().saveOrder,
-        data: jsonEncode(data),
+      var response = await secureFetch(
+        method: 'POST',
+        endpoint: Env().saveOrder,
+        body: jsonEncode(data),
         dbPtr: branchDbptr,
       );
 
@@ -1350,7 +1364,6 @@ class GuestProvider extends ChangeNotifier {
       return false;
     }
   }
-
   Future<bool> saveOrder(int index, String? paymentId) async {
     final pref = await SharedPreferencesService.prefs;
     final brchPtr = pref.getString(branchptr);
@@ -1400,10 +1413,10 @@ class GuestProvider extends ChangeNotifier {
       log('SaveOrder Payload: ${jsonEncode(data)}');
       final prefs = await SharedPreferencesService.prefs;
       String? branchDbptr = prefs.getString(kSelectedBranchDbptr);
-      var response = await ApiService.apiMethodSetup(
-        method: ApiMethod.post,
-        url: Env().saveOrder,
-        data: jsonEncode(data),
+      var response = await secureFetch(
+        method: 'POST',
+        endpoint: Env().saveOrder,
+        body: jsonEncode(data),
         dbPtr: branchDbptr,
       );
 
@@ -1421,15 +1434,25 @@ class GuestProvider extends ChangeNotifier {
     }
   }
 
+
   Future addGuest(int index) async {
     final guest = guests[index];
     final pref = await SharedPreferencesService.prefs;
-    final deviceId = pref.getString(kDeviceId) ??
-        (await FirebaseMessaging.instance.getToken() ?? "");
+    final deviceId = pref.getString(kDeviceId) ?? "";
     final sessionId = pref.getString(session);
     final lat = pref.getString(latitude);
     final long = pref.getString(longitude);
     await ensureGuestToken();
+
+    //  Safely handle nulls before formatting
+    String formattedDate = "";
+    String formattedTime = "";
+
+    formattedDate = DateFormat('yyyy-MM-dd').format(guest.selectedDate);
+
+    if (guest.selectedSlot != null) {
+      formattedTime = guest.selectedSlot!;
+    }
 
     var data = {
       "mode": "app",
@@ -1461,10 +1484,10 @@ class GuestProvider extends ChangeNotifier {
     log('Add guest Payload: ${jsonEncode(data)}');
     String? branchDbptr = pref.getString(kSelectedBranchDbptr);
 
-    var response = await ApiService.apiMethodSetup(
-      method: ApiMethod.post,
-      url: Env().addGuest,
-      data: jsonEncode(data),
+    var response = await secureFetch(
+      method: 'POST',
+      endpoint: Env().addGuest,
+      body: jsonEncode(data),
       dbPtr: branchDbptr,
     );
 
@@ -1488,8 +1511,7 @@ class GuestProvider extends ChangeNotifier {
   Future<Map<String, dynamic>> updateGuest(int index) async {
     final guest = guests[index];
     final pref = await SharedPreferencesService.prefs;
-    final deviceId = pref.getString(kDeviceId) ??
-        (await FirebaseMessaging.instance.getToken() ?? "");
+    final deviceId = pref.getString(kDeviceId) ?? "";
     final sessionId = pref.getString(session);
     // Safely handle nulls before formatting
     String formattedDate = "";
@@ -1520,10 +1542,10 @@ class GuestProvider extends ChangeNotifier {
       log('Update guest Payload: $data');
       String? branchDbptr = pref.getString(kSelectedBranchDbptr);
 
-      var response = await ApiService.apiMethodSetup(
-        method: ApiMethod.post,
-        url: Env().addGuest,
-        data: jsonEncode(data),
+      var response = await secureFetch(
+        method: 'POST',
+        endpoint: Env().addGuest,
+        body: jsonEncode(data),
         dbPtr: branchDbptr,
       );
 
@@ -1581,10 +1603,10 @@ class GuestProvider extends ChangeNotifier {
       "doctorptr": guest.selectedDoctorId,
     };
 
-    var response = await ApiService.apiMethodSetup(
-      method: ApiMethod.post,
-      url: Env().proceedPayment,
-      data: jsonEncode(data),
+    var response = await secureFetch(
+      method: 'POST',
+      endpoint: Env().proceedPayment,
+      body: jsonEncode(data),
       dbPtr: branchDbptr,
     );
 
@@ -1630,8 +1652,7 @@ class GuestProvider extends ChangeNotifier {
     final brchPtr = pref.getString(branchptr);
     final frmptr = pref.getString(firmptr);
     String? branchDbptr = pref.getString(kSelectedBranchDbptr);
-    final deviceId = pref.getString(kDeviceId) ??
-        (await FirebaseMessaging.instance.getToken() ?? "");
+    final deviceId = pref.getString(kDeviceId) ?? "";
     log('Firmid: $frmptr, Branchid: $brchPtr');
     final razorpayKey = pref.getString('razorpay_key');
     log('Razorpay Key: $razorpayKey');
@@ -1692,16 +1713,16 @@ class GuestProvider extends ChangeNotifier {
     log('Original Session ID: $sessionId');
     try {
       // Call API to initiate order
-      var response = await ApiService.apiMethodSetup(
-        method: ApiMethod.post,
-        url: Env().initiatePaymentV2,
-        data: jsonEncode(data),
+      var response = await secureFetch(
+        method: 'POST',
+        endpoint: Env().initiatePaymentV2,
+        body: jsonEncode(data),
         dbPtr: branchDbptr,
       );
-      log('Response Status Code: ${response?.statusCode}');
-      log('Response Data: ${jsonEncode(response?.data)}');
-      if ((response?.statusCode == 200 || response?.statusCode == 201) &&
-          response?.data['success'] == true) {
+     log('Response Status Code: ${response.status}');
+      log('Response Data: ${jsonEncode(response.data)}');
+      if ((response.status == 200 || response.status == 201) &&
+          response.data['success'] == true) {
         paymentv2Id = response?.data['data'];
         log('paymentV2 Id from initiate payment: $paymentId');
         // Hide loader before opening Razorpay
@@ -1715,12 +1736,6 @@ class GuestProvider extends ChangeNotifier {
         showSnackBar(
           context,
           response?.data['message'] ?? "Failed to initiate payment. Try again.",
-        );
-        await analytics.logEvent(
-          name: 'PaymentV2_failure',
-          parameters: {
-            'nura_event': response?.data['message'],
-          },
         );
       }
     } catch (e) {
@@ -1804,23 +1819,23 @@ class GuestProvider extends ChangeNotifier {
     };
 
     try {
-      final response = await ApiService.apiMethodSetup(
-        method: ApiMethod.post,
-        url: Env().appointmentDetails,
-        data: jsonEncode(body),
+       final response = await secureFetch(
+        method: 'POST',
+        endpoint: Env().appointmentDetails,
+        body: jsonEncode(body),
         dbPtr: branchDbptr,
       );
 
-      final code = response?.data?['status'] ?? response?.data?['statusCode'];
+      final code = response.data?['status'] ?? response.data?['statusCode'];
 
-      if (code == 200 && response?.data?['success'] == true) {
-        log('✅ Appointment Detail response: ${response?.data}');
-        return response!.data;
+      if (code == 200 && response.data?['success'] == true) {
+        log('Appointment Detail response: ${response.data}');
+        return response.data;
       }
 
       showSnackBar(
         context,
-        response?.data?['message'] ?? 'Something went wrong. Please try again.',
+        response.data?['message'] ?? 'Something went wrong. Please try again.',
       );
     } catch (e, st) {
       log('fetchAppointmentDetails → $e\n$st');
@@ -2242,7 +2257,9 @@ class GuestProvider extends ChangeNotifier {
               guests.clear();
               notifyListeners();
 
-              Navigator.pop(context, true);
+              if (context.mounted && Navigator.canPop(context)) {
+                Navigator.pop(context, true);
+              }
             }
 
             return;
@@ -2298,15 +2315,16 @@ class GuestProvider extends ChangeNotifier {
     final url = Env().resheduleAppointment(appointmentId: appointmentId);
 
     try {
-      final response = await ApiService.apiMethodSetup(
-        method: ApiMethod.update,
-        url: url,
-        data: jsonEncode(map),
+      final response = await secureFetch(
+        method: 'PUT',
+        endpoint: url,
+        body: map,
         dbPtr: brchPtr,
       );
 
-      if ((response?.statusCode == 200 || response?.statusCode == 201) &&
-          response?.data['success'] == true) {
+     if ((response.data['statusCode'] == 200 ||
+              response.data['statusCode'] == 201) &&
+          response.data['success'] == true) {
         showSnackBar(
           context,
           'Your appointment has successfully rescheduled'.tr(),
@@ -2356,9 +2374,13 @@ class GuestProvider extends ChangeNotifier {
     showConfirmAppointmentDetails = false;
 
     if (context.mounted) {
-      Navigator.of(context)
-        ..pop()
-        ..pop();
+      final navigator = Navigator.of(context);
+      if (navigator.canPop()) {
+        navigator.pop();
+        if (navigator.canPop()) {
+          navigator.pop();
+        }
+      }
       guest.selectedDate = DateTime.now();
       guest.selectedSlot = null;
       clearAddons();
@@ -2469,16 +2491,16 @@ class GuestProvider extends ChangeNotifier {
     };
     await SharedPreferencesService.prefs;
     try {
-      var response = await ApiService.apiMethodSetup(
-        method: ApiMethod.post,
-        url: Env().generateOtpForGuestsUser,
-        data: jsonEncode(data),
+       var response = await secureFetch(
+        method: 'POST',
+        endpoint: Env().generateOtpForGuestsUser,
+        body: jsonEncode(data),
         // dbPtr: branchDbptr,
       );
       log('Generate Otp Payload: ${jsonEncode(data)}');
       log('Generate OTP: $response');
 // Return response data if successful
-      return response?.data;
+      return response.data;
     } catch (e) {
       log("Error sending OTP: $e");
       // Return null if an error occurs
@@ -2787,10 +2809,10 @@ class GuestProvider extends ChangeNotifier {
     log("OTP Verification Request: $data");
     await SharedPreferencesService.prefs;
     try {
-      final response = await ApiService.apiMethodSetup(
-        method: ApiMethod.post,
-        url: Env().verifyOtpForGuestUser,
-        data: jsonEncode(data),
+      final response = await secureFetch(
+        method: 'POST',
+        endpoint: Env().verifyOtpForGuestUser,
+        body: jsonEncode(data),
         // dbPtr: branchDbptr
       );
       log('Otp Verification response: ${response!.data}');
@@ -2953,12 +2975,12 @@ class GuestProvider extends ChangeNotifier {
         endDate: selectedDateForSlot(guest.selectedDate),
       );
 
-      log('Slot URL: $slotUrl');
-      log('Token: ${ApiService.authToken}');
+     log('Slot URL: $slotUrl');
+      log('Token: ${pref.getString('token')}');
 
-      final response = await ApiService.apiMethodSetup(
-        method: ApiMethod.get,
-        url: slotUrl,
+      final response = await secureFetch(
+        method: 'GET',
+        endpoint: slotUrl,
         dbPtr: branchDbptr,
       );
       var json = response?.data;

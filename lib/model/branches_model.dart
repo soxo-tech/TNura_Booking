@@ -2,9 +2,8 @@
 //
 //     final branchesModel = branchesModelFromJson(jsonString);
 
-import 'dart:convert';
-
 import 'package:json_annotation/json_annotation.dart';
+import 'dart:convert';
 
 part 'branches_model.g.dart';
 
@@ -58,7 +57,7 @@ class BranchResult {
   final String? description;
   @JsonKey(name: "addressptr")
   final String? addressptr;
-  @JsonKey(name: "firmptr")
+  @JsonKey(name: "firm_ptr")
   final String? firmptr;
   @JsonKey(name: "active")
   final String? active;

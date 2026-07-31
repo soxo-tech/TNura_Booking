@@ -46,51 +46,51 @@ class BookingFlowBranchesList {
 }
 
 class BookingBranches {
-  String? brCode;
-  String? brDesc;
+  String? code;
+  String? desc;
   String? brAddptr;
-  String? brFirmptr;
-  String? brActive;
-  dynamic brIssync;
-  dynamic cngdDt;
-  String? brOtherdet1;
+  String? firmptr;
+  String? active;
+  dynamic issync;
+  dynamic dt;
+  String? otherdet1;
   Map<String, String?>? address;
 
   BookingBranches({
-    this.brCode,
-    this.brDesc,
+    this.code,
+    this.desc,
     this.brAddptr,
-    this.brFirmptr,
-    this.brActive,
-    this.brIssync,
-    this.cngdDt,
-    this.brOtherdet1,
+    this.firmptr,
+    this.active,
+    this.issync,
+    this.dt,
+    this.otherdet1,
     this.address,
   });
 
   factory BookingBranches.fromJson(Map<String, dynamic> json) =>
       BookingBranches(
-        brCode: json["br_code"],
-        brDesc: json["br_desc"],
+        code: json["code"],
+        desc: json["description"],
         brAddptr: json["br_addptr"],
-        brFirmptr: json["br_firmptr"],
-        brActive: json["br_active"],
-        brIssync: json["br_issync"],
-        cngdDt: json["cngd_dt"],
-        brOtherdet1: json["br_otherdet1"],
+        firmptr: json["firm_ptr"],
+        active: json["active"],
+        issync: json["issync"],
+        dt: json["dt"],
+        otherdet1: json["otherdet1"],
         address: Map.from(json["address"]!)
             .map((k, v) => MapEntry<String, String?>(k, v)),
       );
 
   Map<String, dynamic> toJson() => {
-        "br_code": brCode,
-        "br_desc": brDesc,
+        "code": code,
+        "description": desc,
         "br_addptr": brAddptr,
-        "br_firmptr": brFirmptr,
-        "br_active": brActive,
-        "br_issync": brIssync,
-        "cngd_dt": cngdDt,
-        "br_otherdet1": brOtherdet1,
+        "firm_ptr": firmptr,
+        "active": active,
+        "issync": issync,
+        "dt": dt,
+        "otherdet1": otherdet1,
         "address":
             Map.from(address!).map((k, v) => MapEntry<String, dynamic>(k, v)),
       };

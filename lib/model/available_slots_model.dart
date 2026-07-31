@@ -81,7 +81,6 @@ class AvailableSlot {
       };
 }
 
-// ignore: constant_identifier_names
 enum Dayname { FRIDAY }
 
 final daynameValues = EnumValues({"Friday": Dayname.FRIDAY});

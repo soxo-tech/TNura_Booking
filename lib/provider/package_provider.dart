@@ -9,7 +9,7 @@ import 'package:booking/model/packages_list_model.dart';
 import 'package:booking/provider/guests_provider.dart';
 import 'package:booking/provider/login_provider.dart';
 import 'package:booking/services/api_services.dart';
-import 'package:booking/services/remote_config_services.dart';
+import 'package:booking/services/security_service/secure_fetch.dart';
 import 'package:booking/view/booking/booking.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
@@ -49,32 +49,12 @@ class PackagesProvider extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferencesService.prefs;
 
-    /// Initialze a empty countries variable
-    List<String> countries = [];
-
-    /// Get Countries json from remote config.
-    /// In standalone mode RemoteConfigService is not registered, so fall back
-    /// to whatever country was already seeded in SharedPreferences.
-    try {
-      if (!context.mounted) return;
-      dynamic json = await context.read<RemoteConfigService>().countries;
-      for (var element in json) {
-        countries.add(element['country']);
-      }
-    } catch (e) {
-      log('RemoteConfigService unavailable; using prefs-only country: $e');
-    }
-
-    /// Get Selected Country from local storage
+    /// The selected country is whatever the host launcher (or the standalone
+    /// bootstrap) seeded into SharedPreferences. Booking's RemoteConfigService
+    /// is never registered as a Provider in either mode, so there is no remote
+    /// country list to read here — prefs is the single source of truth.
     final currentCountry = prefs.getString(kSelectedCountry);
-
-    if (countries.isNotEmpty) {
-      final index = countries.indexOf(currentCountry ?? '');
-      if (index != -1) {
-        selectedCountryIndex = index;
-        selectedCountry = countries[index];
-      }
-    } else if (currentCountry != null && currentCountry.isNotEmpty) {
+    if (currentCountry != null && currentCountry.isNotEmpty) {
       selectedCountry = currentCountry;
     }
     isInitializing = false;
@@ -90,9 +70,9 @@ class PackagesProvider extends ChangeNotifier {
     final pref = await SharedPreferencesService.prefs;
     String country = pref.getString('country') ?? "India";
 
-    await ApiService.apiMethodSetup(
-      method: ApiMethod.get,
-      url: Env().branchListAPI,
+    await secureFetch(
+      method: 'GET',
+      endpoint: Env().branchListAPI,
       dbPtr: country == 'Mongolia' ? 'nuramho' : null,
     ).then((response) {
       var json = response?.data;
@@ -118,8 +98,9 @@ class PackagesProvider extends ChangeNotifier {
     );
 
     // Extract RGB/RGBA colors
-    RegExp rgbRegex =
-        RegExp(r'rgb(a)?\((\d+),\s*(\d+),\s*(\d+)(,\s*([\d.]+))?\)');
+    RegExp rgbRegex = RegExp(
+      r'rgb(a)?\((\d+),\s*(\d+),\s*(\d+)(,\s*([\d.]+))?\)',
+    );
     Iterable<Match> rgbMatches = rgbRegex.allMatches(gradientString);
     colors.addAll(
       rgbMatches.map((match) {
@@ -190,20 +171,26 @@ class PackagesProvider extends ChangeNotifier {
       return;
     }
 
+    log(selectedCountry ?? "", name: "test");
+    log(selectedBranch ?? "", name: "test");
+
+    log('Fetching branches with Dbptr: $dbptr');
+
     try {
-      final response = await ApiService.apiMethodSetup(
-        method: ApiMethod.get,
-        url: Env().bookingFlowBranchersAPI,
+      final response = await secureFetch(
+        method: 'GET',
+        endpoint: Env().branchListAPI,
         dbPtr: dbptr,
       );
-
+      // log('Branches Response: ${response?.data}');
       if (response?.data['statusCode'] == 200) {
         var json = response?.data;
-        BookingFlowBranchesList branchList =
-            BookingFlowBranchesList.fromJson(json);
+        BookingFlowBranchesList branchList = BookingFlowBranchesList.fromJson(
+          json,
+        );
 
         bookingFlowBranches = (branchList.result ?? []).where((e) {
-          final brOtherdet1 = e.brOtherdet1 ?? "";
+          final brOtherdet1 = e.otherdet1 ?? "";
           final otherDetMap = jsonDecode(brOtherdet1);
           final visibility = otherDetMap['web_visibility']?.toString();
           return visibility != "N";
@@ -213,28 +200,33 @@ class PackagesProvider extends ChangeNotifier {
           isBranchListLoadingSuccess = true;
         }
 
-        final String? newDbPtr = pref.getString(kSelectedBranchDbptr);
+        String? newDbPtr = pref.getString(kSelectedBranchDbptr);
 
         if (newDbPtr == null || newDbPtr.isEmpty) {
+          // No saved branch — pick the first one
           if (bookingFlowBranches.isNotEmpty) {
             await setSelectedBranch(0, shouldMigrate: false);
+            // ADD THIS: Explicitly fetch packages for the first branch
             await getPackagesList();
           }
         } else {
           final currentBranch = pref.getString(kSelectedBranch);
           final index = bookingFlowBranches.indexWhere(
-            (e) => e.brDesc == currentBranch,
+            (e) => e.desc == currentBranch,
           );
 
           if (index != -1) {
             await setSelectedBranch(index, shouldMigrate: false);
+            // ALREADY THERE/ENSURE THIS:
             await getPackagesList();
           } else if (bookingFlowBranches.isNotEmpty) {
             await setSelectedBranch(0, shouldMigrate: false);
+            // ADD THIS:
             await getPackagesList();
           }
         }
 
+        // Notify UI about branch list update
         notifyListeners();
       }
     } catch (e) {
@@ -259,19 +251,20 @@ class PackagesProvider extends ChangeNotifier {
   }
 
   /// Method to update selected branch dbptr when tapped
-  Future<void> setSelectedBranch(int index,
-      {bool shouldMigrate = false,}) async {
+  Future<void> setSelectedBranch(
+    int index, {
+    bool shouldMigrate = false,
+  }) async {
     final pref = await SharedPreferencesService.prefs;
-    final isLoggedIn = isAppLoggedIn;
+    final isLoggedIn = pref.getBool('isAppLoggedIn') ?? false;
 
     if (index < 0 || index >= bookingFlowBranches.length) return;
 
     final branch = bookingFlowBranches[index];
-    final newDbPtr =
-        jsonDecode(branch.brOtherdet1 ?? '{}')['db_ptr']?.toString();
+    final newDbPtr = jsonDecode(branch.otherdet1 ?? '{}')['db_ptr']?.toString();
 
     if (newDbPtr == null || newDbPtr.isEmpty) {
-      log('No db_ptr found for branch: ${branch.brDesc}');
+      log('No db_ptr found for branch: ${branch.desc}');
       return;
     }
 
@@ -281,24 +274,24 @@ class PackagesProvider extends ChangeNotifier {
     }
 
     // Call migration API
-    log('Migrating account to ${branch.brDesc} (db_ptr: $newDbPtr)');
+    log('Migrating account to ${branch.desc} (db_ptr: $newDbPtr)');
 
     try {
-      final response = await ApiService.apiMethodSetup(
-        method: ApiMethod.post,
-        url: Env().migrateAccountAPI,
-        data: {"mode": "GSTDMIG", "destination_branch_ptr": newDbPtr},
+      final response = await secureFetch(
+        method: 'POST',
+        endpoint: Env().migrateAccountAPI,
+        body: {"mode": "GSTDMIG", "destination_branch_ptr": newDbPtr},
       );
 
       final statusCode =
-          response?.data['status_code'] ?? response?.data['statusCode'];
+          response.data['status_code'] ?? response.data['statusCode'];
 
       if (statusCode != 200) {
-        log('Migration failed: ${response?.data['message']}');
+        log('Migration failed: ${response.data['message']}');
         return;
       }
 
-      log('Migration successful: ${response?.data['message']}');
+      log('Migration successful: ${response.data['message']}');
       await _updateBranch(pref, branch, newDbPtr, index);
     } catch (e) {
       log('Migration error: $e');
@@ -322,8 +315,9 @@ class PackagesProvider extends ChangeNotifier {
     if (isLoggedIn && index >= 0 && index < bookingFlowBranches.length) {
       final userProfileDbPtr = pref.getString('dbptr');
       final branch = bookingFlowBranches[index];
-      final selectedBranchDbPtr =
-          jsonDecode(branch.brOtherdet1 ?? '{}')['db_ptr']?.toString();
+      final selectedBranchDbPtr = jsonDecode(
+        branch.otherdet1 ?? '{}',
+      )['db_ptr']?.toString();
 
       // Migration needed if user's profile branch differs from selected branch
       needsMigration = userProfileDbPtr != selectedBranchDbPtr;
@@ -333,7 +327,7 @@ class PackagesProvider extends ChangeNotifier {
     await setSelectedBranch(index, shouldMigrate: needsMigration);
 
     // Refresh packages for logged-in users
-      await getPackagesList();
+    await getPackagesList();
 
     // Pop if from branch list
     if (isFromBranchList && context.mounted) {
@@ -374,19 +368,24 @@ class PackagesProvider extends ChangeNotifier {
     String newDbPtr,
     int index,
   ) async {
-    selectedBranch = branch.brDesc;
+    selectedBranch = branch.desc;
     selectedBranchIndex = index;
     selectedBranchDbPtr = newDbPtr;
 
-    await pref.setString(kSelectedBranch, branch.brDesc ?? "");
+    await pref.setString(kSelectedBranch, branch.desc ?? "");
     await pref.setString(kSelectedBranchDbptr, newDbPtr);
-    if (branch.brCode != null) {
-      await pref.setString(branchptr, branch.brCode!);
+    if (branch.code != null) {
+      await pref.setString(branchptr, branch.code!);
     }
-    if (branch.brFirmptr != null) {
-      await pref.setString(firmptr, branch.brFirmptr!);
+    if (branch.firmptr != null) {
+      await pref.setString(firmptr, branch.firmptr!);
     }
 
+    // CRITICAL: If your ApiService caches the dbptr or base url,
+    // ensure it is refreshed here before getPackagesList() is called.
+    log(
+      'Saved Branch: ${branch.desc}, BranchPtr: ${branch.code}, FirmPtr: ${branch.firmptr}',
+    );
     notifyListeners();
     await getPackagesList();
   }
@@ -400,16 +399,22 @@ class PackagesProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await ApiService.apiMethodSetup(
-        method: ApiMethod.get,
-        url: Env().packagesListAPI,
+      final response = await secureFetch(
+        endpoint: Env().packagesListAPI,
+        method: 'GET',
+        requireAuth: false,
         dbPtr: branchDbPtr,
       );
 
       final rawData = response?.data;
-
+      // log('Packages List: $rawData');
+      // The packages API now returns a `{statusCode, message, success, result}`
+      // envelope with the list under `result`. Older responses returned the
+      // list directly (or nested one level). Handle all three shapes.
       List<dynamic> itemsToParse = [];
-      if (rawData is List && rawData.isNotEmpty) {
+      if (rawData is Map && rawData['result'] is List) {
+        itemsToParse = rawData['result'];
+      } else if (rawData is List && rawData.isNotEmpty) {
         if (rawData.first is List) {
           itemsToParse = rawData.first;
         } else {
@@ -417,13 +422,23 @@ class PackagesProvider extends ChangeNotifier {
         }
       }
 
+      // TEMP DEBUG: print the field names of the first item so we can map the
+      // new API keys (doctor id, rate, cost). Remove once mapping is confirmed.
+      if (itemsToParse.isNotEmpty && itemsToParse.first is Map) {
+        // log('PKG ITEM KEYS: ${(itemsToParse.first as Map).keys.toList()}',
+        //     name: 'pkgdebug');
+      }
+
       final List<PackagesListModel> tempList = [];
 
       for (var item in itemsToParse) {
         try {
-          final String detailStr = item["itm_otherdet3"]?.toString() ?? "{}";
-          final cleanedJson =
-              detailStr.replaceAll('\n', '').replaceAll('\r', '');
+          final String detailStr =
+              (item["otherDetails3"] ?? item["itm_otherdet3"])?.toString() ??
+                  "{}";
+          final cleanedJson = detailStr
+              .replaceAll('\n', '')
+              .replaceAll('\r', '');
           Map<String, dynamic> extraDetails = {};
 
           try {
@@ -444,6 +459,7 @@ class PackagesProvider extends ChangeNotifier {
       }
 
       packagesList = tempList;
+      // log('Packages List: $tempList');
     } catch (globalError) {
       log("Global API Error: $globalError");
     } finally {

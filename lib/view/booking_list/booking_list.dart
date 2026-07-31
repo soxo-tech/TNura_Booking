@@ -169,6 +169,24 @@ class _BookingListScreenState extends State<BookingListScreen> with TickerProvid
             return SizedBox(); // DO NOT SHOW APPOINTMENTS
           }
 
+          // Only bookings with a date and a resolvable package actually render
+          // as a card below; filter here so the count badge and the
+          // scrollable list agree on how many appointments there are.
+          final validResults = results
+              .where(
+                (booking) =>
+                    booking.daDate != null &&
+                    packagesProvider.getPackageByCode(
+                          booking.daPackagetypevalue,
+                        ) !=
+                        null,
+              )
+              .toList();
+
+          if (validResults.isEmpty) {
+            return SizedBox();
+          }
+
           // VALID DATA
           return Column(
             // Size to content so the screen can be embedded as an inline item
@@ -199,7 +217,7 @@ class _BookingListScreenState extends State<BookingListScreen> with TickerProvid
                         ),
                         child: Center(
                           child: RefractedText(
-                            text: '${results.length ?? 0}',
+                            text: '${validResults.length}',
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
                             textColor: AppColors.white,
@@ -208,7 +226,7 @@ class _BookingListScreenState extends State<BookingListScreen> with TickerProvid
                       ),
                     ],
                   ),
-                  results.length == 1
+                  validResults.length == 1
                       ? SizedBox()
                       : GestureDetector(
                           onTap: () {
@@ -241,26 +259,20 @@ class _BookingListScreenState extends State<BookingListScreen> with TickerProvid
                     // When there's only a single booking, the card fits the
                     // full available width; otherwise it keeps the peeking
                     // 85%-width card so adjacent cards hint at horizontal scroll.
-                    final bool isSingle = results.length == 1;
+                    final bool isSingle = validResults.length == 1;
                     final double cardWidth = isSingle
-                        ? constraints.maxWidth
-                        : MediaQuery.of(context).size.width * 0.85;
+    ? constraints.maxWidth
+    : constraints.maxWidth - 8;
                     return ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    physics: isSingle
-                        ? const NeverScrollableScrollPhysics()
-                        : null,
-                    // padding:
-                    //     EdgeInsets.symmetric(horizontal: 10),
-                    itemCount: results == null ? 0 : results.length,
-                    separatorBuilder: (_, __) =>
-                        results.length == 1 ? SizedBox() : SizedBox(width: 12),
-                    itemBuilder: (context, index) {
-                      if (results == null) return SizedBox(); // still loading
-
-                      final booking = results[index];
-                      if (booking.daDate == null) return SizedBox();
-
+  scrollDirection: Axis.horizontal,
+  physics: isSingle
+      ? const NeverScrollableScrollPhysics()
+      : const BouncingScrollPhysics(),
+  padding: EdgeInsets.zero, // No padding at start/end
+  itemCount: validResults.length,
+  separatorBuilder: (_, __) => const SizedBox(width: 15),
+  itemBuilder: (context, index) {
+                      final booking = validResults[index];
                       DateTime dt = booking.daDate!;
 
                       final formattedDate = loginProvider.formatHistoryDate(dt);
@@ -270,11 +282,8 @@ class _BookingListScreenState extends State<BookingListScreen> with TickerProvid
                       );
                       final package = packagesProvider.getPackageByCode(
                         booking.daPackagetypevalue,
-                      );
+                      )!;
 
-                      if (package == null) {
-                        return SizedBox(); // or shimmer card
-                      }
                       final packageName =
                           booking.packageDetails?.description ?? 'N/A';
                       final packageDrId = booking.packageDetails?.slotDoctorPtr;
@@ -325,115 +334,117 @@ class _BookingListScreenState extends State<BookingListScreen> with TickerProvid
                             ),
                           );
                         },
-                        child: Container(
-                          width: cardWidth,
-                          padding: EdgeInsets.fromLTRB(12, 12, 12, 0),
-                          decoration: BoxDecoration(
-                            color: AppColors.white,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 1,
-                                spreadRadius: 0.5,
-                                offset: Offset(0, 1),
-                              ),
-                            ],
-                            border: Border.all(
-                              color: AppColors.slotDateContainerBorderColor,
-                            ),
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              Container(
-                                height: 64,
-                                width: 64,
-                                padding: EdgeInsets.only(top: 8),
-                                decoration: BoxDecoration(
-                                  gradient:
-                                      packageBackground?.parseGradient() ??
-                                      AppColors.defaultPackageGradient,
-                                  borderRadius: BorderRadius.circular(8),
+                        child: IntrinsicWidth(
+                          child: Container(
+                            width: MediaQuery.of(context).size.width * 0.85,
+                            padding: EdgeInsets.fromLTRB(12, 12, 12, 0),
+                            decoration: BoxDecoration(
+                              color: AppColors.white,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.05),
+                                  blurRadius: 1,
+                                  spreadRadius: 0.5,
+                                  offset: Offset(0, 1),
                                 ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: hasValidImage
-                                      ? CachedNetworkImage(
-                                          imageUrl: packageImage,
-                                          fit: BoxFit.contain,
-                                          placeholder: (context, url) => Center(
-                                            child: SizedBox(
-                                              width: 20,
-                                              height: 20,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 2,
-                                                color: Colors.white.withOpacity(
-                                                  0.5,
+                              ],
+                              border: Border.all(
+                                color: AppColors.slotDateContainerBorderColor,
+                              ),
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                Container(
+                                  height: 64,
+                                  width: 64,
+                                  padding: EdgeInsets.only(top: 8),
+                                  decoration: BoxDecoration(
+                                    gradient:
+                                        packageBackground?.parseGradient() ??
+                                        AppColors.defaultPackageGradient,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: hasValidImage
+                                        ? CachedNetworkImage(
+                                            imageUrl: packageImage,
+                                            fit: BoxFit.contain,
+                                            placeholder: (context, url) => Center(
+                                              child: SizedBox(
+                                                width: 20,
+                                                height: 20,
+                                                child: CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                  color: Colors.white.withOpacity(
+                                                    0.5,
+                                                  ),
                                                 ),
                                               ),
                                             ),
-                                          ),
-                                          errorWidget: (context, url, error) =>
-                                              Icon(Icons.image, size: 30),
-                                        )
-                                      : Icon(Icons.image, size: 30), // fallback
+                                            errorWidget: (context, url, error) =>
+                                                Icon(Icons.image, size: 30),
+                                          )
+                                        : Icon(Icons.image, size: 30), // fallback
+                                  ),
                                 ),
-                              ),
-                              SizedBox(width: 12),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      SvgPicture.asset(
-                                        bookingAssetPath('assets/svg/img_guest.svg'),
-                                        height: 10,
-                                        width: 10,
-                                        color: const Color.fromRGBO(
-                                          25,
-                                          55,
-                                          78,
-                                          1,
+                                SizedBox(width: 12),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        SvgPicture.asset(
+                                          bookingAssetPath('assets/svg/img_guest.svg'),
+                                          height: 10,
+                                          width: 10,
+                                          color: const Color.fromRGBO(
+                                            25,
+                                            55,
+                                            78,
+                                            1,
+                                          ),
                                         ),
-                                      ),
-                                      SizedBox(width: 5),
-                                      RefractedText(
-                                        text:
-                                            '${booking?.daFname} ${booking?.daLname}',
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        textColor: AppColors.packageTextPrimary,
-                                      ),
-                                    ],
-                                  ),
-                                  SizedBox(height: 10),
-                                  RefractedText(
-                                    text: packageName,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    textColor: AppColors.textFieldHintColor,
-                                  ),
-                                  Row(
-                                    children: [
-                                      RefractedText(
-                                        text: formattedDate,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
-                                        textColor: AppColors.packageTextPrimary,
-                                      ),
-                                      RefractedText(
-                                        text: ', ${booking.daAptime}',
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
-                                        textColor: AppColors.packageTextPrimary,
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ],
+                                        SizedBox(width: 5),
+                                        RefractedText(
+                                          text:
+                                              '${booking?.daFname} ${booking?.daLname}',
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          textColor: AppColors.packageTextPrimary,
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 10),
+                                    RefractedText(
+                                      text: packageName,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      textColor: AppColors.textFieldHintColor,
+                                    ),
+                                    Row(
+                                      children: [
+                                        RefractedText(
+                                          text: formattedDate,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                          textColor: AppColors.packageTextPrimary,
+                                        ),
+                                        RefractedText(
+                                          text: ', ${booking.daAptime}',
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                          textColor: AppColors.packageTextPrimary,
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       );

@@ -201,91 +201,96 @@ class Result {
   });
 
   factory Result.fromJson(Map<String, dynamic> json) => Result(
-      daId: json["da_id"],
-      daDoctorptr: json["da_doctorptr"],
-      daDate: json["da_date"] == null ? null : DateTime.parse(json["da_date"]),
-      daOpno: json["da_opno"],
-      daLname: json["da_lname"],
-      daFname: json["da_fname"],
-      daAdd1: json["da_add1"],
-      daAdd2: json["da_add2"],
-      daPlace: json["da_place"],
-      daPhone: json["da_phone"],
-      daMobile: json["da_mobile"],
-      daTokenno: json["da_tokenno"],
-      daAptime: json["da_aptime"],
-      daRemarks: json["da_remarks"],
-      daUserid: json["da_userid"],
-      daUser: json["da_user"],
-      daTime: json["da_time"] == null ? null : DateTime.parse(json["da_time"]),
-      daCanflg: json["da_canflg"],
-      daCanuser: json["da_canuser"],
-      daCanuserid: json["da_canuserid"],
-      daCantime: json["da_cantime"],
-      daTitle: json["da_title"],
-      daVisitstatus: json["da_visitstatus"],
-      daVisitid: json["da_visitid"],
-      daMode: json["da_mode"],
-      daPaystatus: json["da_paystatus"],
-      daReferencetype: json["da_referencetype"],
-      daReferenceid: json["da_referenceid"],
-      daBkstatus: json["da_bkstatus"],
-      daBkstatususer: json["da_bkstatususer"],
-      daBkstatusdttm: json["da_bkstatusdttm"] == null
-          ? null
-          : DateTime.parse(json["da_bkstatusdttm"]),
-      daPackagetype: json["da_packagetype"],
-      daPackagetypevalue: json["da_packagetypevalue"],
-      daNewopno: json["da_newopno"],
-      daBillvalue: json["da_billvalue"],
-      daCouponvalue: json["da_couponvalue"],
-      daCouponno: json["da_couponno"],
-      daDelivarymode: json["da_delivarymode"],
-      daDelivarydttm: json["da_delivarydttm"] == null
-          ? null
-          : DateTime.parse(json["da_delivarydttm"]),
-      daDelivaryaddressid: json["da_delivaryaddressid"],
-      daZip: json["da_zip"],
-      daLandmark: json["da_landmark"],
-      daQuestfilled: json["da_questfilled"],
-      daConsentfilled: json["da_consentfilled"],
-      daQuestmailsendstatus: json["Da_questmailsendstatus"],
-      daConsentmailsendstatus: json["da_consentmailsendstatus"],
-      daFitkitmailsendstatus: json["da_fitkitmailsendstatus"],
-      daFitkitstatus: json["da_fitkitstatus"],
-      daBillid: json["da_billid"],
-      daReportmailsendstatus: json["da_reportmailsendstatus"],
-      daPhyverified: json["da_phyverified"],
-      daRptuploaded: json["da_rptuploaded"],
-      daPhyrptstatus: json["da_phyrptstatus"],
-      daRptstatus: json["da_rptstatus"],
-      daEmail: json["da_email"],
-      daGender: json["da_gender"],
-      daDob: json["da_dob"],
-      daReportmailsenddttm: json["da_reportmailsenddttm"],
-      daCanremarks: json["da_canremarks"],
-      daSourcetype: json["da_sourcetype"],
-      daReferrerptr: json["da_referrerptr"],
-      daFirmptr: json["da_firmptr"],
-      daBranchptr: json["da_branchptr"],
-      daSamplestatus: json["da_samplestatus"],
-      daCorporateptr: json["da_corporateptr"],
-      daCorporateinfo: json["da_corporateinfo"],
-      daOtherdetails1: json["da_otherdetails1"],
-      daUpdateduserid: json["da_updateduserid"],
-      daUpdatedtime: json["da_updatedtime"],
-      daConsentscannedstatus: json["da_consentscannedstatus"],
-      daCountry: json["da_country"],
-      daReftypeptr: json["da_reftypeptr"],
-      addOnPackageDetails: json["addOnPackageDetails"] == null
-          ? []
-          : List<AddOnPackageDetails>.from(json["addOnPackageDetails"]!
-              .map((x) => AddOnPackageDetails.fromJson(x))),
-      addOnPackageTotal: json["addOnPackageTotal"],
-      packageDetails: json["packageDetails"] == null
-          ? null
-          : PackageDetails.fromJson(json["packageDetails"]),
-      age: json["age"]);
+        daId: json["da_id"],
+        daDoctorptr: json["da_doctorptr"],
+        daDate:
+            json["da_date"] == null ? null : DateTime.parse(json["da_date"]),
+        daOpno: json["da_opno"],
+        daLname: json["da_lname"],
+        daFname: json["da_fname"],
+        daAdd1: json["da_add1"],
+        daAdd2: json["da_add2"],
+        daPlace: json["da_place"],
+        daPhone: json["da_phone"],
+        daMobile: json["da_mobile"],
+        daTokenno: json["da_tokenno"],
+        daAptime: json["da_aptime"],
+        daRemarks: json["da_remarks"],
+        daUserid: json["da_userid"],
+        daUser: json["da_user"],
+        daTime:
+            json["da_time"] == null ? null : DateTime.parse(json["da_time"]),
+        daCanflg: json["da_canflg"],
+        daCanuser: json["da_canuser"],
+        daCanuserid: json["da_canuserid"],
+        daCantime: json["da_cantime"],
+        daTitle: json["da_title"],
+        daVisitstatus: json["da_visitstatus"],
+        daVisitid: json["da_visitid"],
+        daMode: json["da_mode"],
+        daPaystatus: json["da_paystatus"],
+        daReferencetype: json["da_referencetype"],
+        daReferenceid: json["da_referenceid"],
+        daBkstatus: json["da_bkstatus"],
+        daBkstatususer: json["da_bkstatususer"],
+        daBkstatusdttm: json["da_bkstatusdttm"] == null
+            ? null
+            : DateTime.parse(json["da_bkstatusdttm"]),
+        daPackagetype: json["da_packagetype"],
+        daPackagetypevalue: json["da_packagetypevalue"],
+        daNewopno: json["da_newopno"],
+        daBillvalue: json["da_billvalue"],
+        daCouponvalue: json["da_couponvalue"],
+        daCouponno: json["da_couponno"],
+        daDelivarymode: json["da_delivarymode"],
+        daDelivarydttm: json["da_delivarydttm"] == null
+            ? null
+            : DateTime.parse(json["da_delivarydttm"]),
+        daDelivaryaddressid: json["da_delivaryaddressid"],
+        daZip: json["da_zip"],
+        daLandmark: json["da_landmark"],
+        daQuestfilled: json["da_questfilled"],
+        daConsentfilled: json["da_consentfilled"],
+        daQuestmailsendstatus: json["Da_questmailsendstatus"],
+        daConsentmailsendstatus: json["da_consentmailsendstatus"],
+        daFitkitmailsendstatus: json["da_fitkitmailsendstatus"],
+        daFitkitstatus: json["da_fitkitstatus"],
+        daBillid: json["da_billid"],
+        daReportmailsendstatus: json["da_reportmailsendstatus"],
+        daPhyverified: json["da_phyverified"],
+        daRptuploaded: json["da_rptuploaded"],
+        daPhyrptstatus: json["da_phyrptstatus"],
+        daRptstatus: json["da_rptstatus"],
+        daEmail: json["da_email"],
+        daGender: json["da_gender"],
+        daDob: json["da_dob"],
+        daReportmailsenddttm: json["da_reportmailsenddttm"],
+        daCanremarks: json["da_canremarks"],
+        daSourcetype: json["da_sourcetype"],
+        daReferrerptr: json["da_referrerptr"],
+        daFirmptr: json["da_firmptr"],
+        daBranchptr: json["da_branchptr"],
+        daSamplestatus: json["da_samplestatus"],
+        daCorporateptr: json["da_corporateptr"],
+        daCorporateinfo: json["da_corporateinfo"],
+        daOtherdetails1: json["da_otherdetails1"],
+        daUpdateduserid: json["da_updateduserid"],
+        daUpdatedtime: json["da_updatedtime"],
+        daConsentscannedstatus: json["da_consentscannedstatus"],
+        daCountry: json["da_country"],
+        daReftypeptr: json["da_reftypeptr"],
+        addOnPackageDetails: json["addOnPackageDetails"] == null
+            ? []
+            : List<AddOnPackageDetails>.from(
+                json["addOnPackageDetails"]!
+                    .map((x) => AddOnPackageDetails.fromJson(x)),
+              ),
+        addOnPackageTotal: json["addOnPackageTotal"],
+        packageDetails: json["packageDetails"] == null
+            ? null
+            : PackageDetails.fromJson(json["packageDetails"]),
+        age: json["age"],
+      );
 
   Map<String, dynamic> toJson() => {
         "da_id": daId,
@@ -384,10 +389,11 @@ class AddOnPackageDetails {
 
   factory AddOnPackageDetails.fromJson(Map<String, dynamic> json) =>
       AddOnPackageDetails(
-          itemCode: json["item_code"],
-          description: json["description"],
-          rate: json["rate"],
-          image: json["image"]);
+        itemCode: json["item_code"],
+        description: json["description"],
+        rate: json["rate"],
+        image: json["image"],
+      );
 
   Map<String, dynamic> toJson() => {
         "item_code": itemCode,
@@ -413,17 +419,18 @@ class PackageDetails {
   });
 
   factory PackageDetails.fromJson(Map<String, dynamic> json) => PackageDetails(
-      itemCode: json["item_code"],
-      description: json["description"],
-      rate: json["rate"],
-      image: json["image"],
-      slotDoctorPtr: json["slotDoctorPtr"]);
+        itemCode: json["item_code"],
+        description: json["description"],
+        rate: json["rate"],
+        image: json["image"],
+        slotDoctorPtr: json["slotDoctorPtr"],
+      );
 
   Map<String, dynamic> toJson() => {
         "item_code": itemCode,
         "description": description,
         "rate": rate,
         "image": image,
-        "slotDoctorPtr": slotDoctorPtr
+        "slotDoctorPtr": slotDoctorPtr,
       };
 }
