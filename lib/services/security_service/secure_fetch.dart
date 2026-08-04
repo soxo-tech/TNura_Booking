@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:developer';
-import 'package:booking/core/env.dart';
 import 'package:booking/services/api_services.dart';
 import 'package:booking/services/security_service/secure_headers.dart';
 import 'package:booking/services/shared_preferences.dart';
@@ -29,9 +28,27 @@ Future<SecureFetchResponse> secureFetch(
     bool requireAuth = true,
     String? dbPtr}) async {
   final pref = await SharedPreferencesService.prefs;
-  final BASE_URL = Env().baseURL;
+  // Base URL, gateway toggle and signing credentials all come from the host
+  // via BookingFlowLauncher (persisted by SharedPreferenceController) — there
+  // is no hardcoded fallback.
+  final BASE_URL = pref.getString('url') ?? '';
+  final gatewayEnabled = pref.getBool('apiGatewayEnabled') ?? true;
+  final gatewayClientId = pref.getString('clientId');
+  final gatewayClientSecret = pref.getString('clientSecret');
+  final gatewayEnv = pref.getString('env');
   final httpMethod = method.toUpperCase();
   String dbptr = pref.getString('dbptr') ?? "";
+
+  if (BASE_URL.isEmpty) {
+    log(
+      'API ERROR: Base URL is empty. Ensure it is passed to BookingFlowLauncher by the host.',
+    );
+    return SecureFetchResponse(
+      ok: false,
+      status: 0,
+      data: {'error': 'Base URL not configured'},
+    );
+  }
 
   String finalEndpoint = endpoint;
 
@@ -43,6 +60,10 @@ Future<SecureFetchResponse> secureFetch(
       endpoint: finalEndpoint,
       method: httpMethod,
       body: (httpMethod == 'GET') ? null : body,
+      gatewayEnabled: gatewayEnabled,
+      clientId: gatewayClientId,
+      clientSecret: gatewayClientSecret,
+      env: gatewayEnv,
     );
 
     final prefs = await SharedPreferences.getInstance();

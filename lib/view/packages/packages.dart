@@ -241,13 +241,8 @@ class _PackagesState extends State<Packages> with TickerProviderStateMixin {
                   final itemIndex = index ~/ 2;
                   final package = provider.packagesList[itemIndex];
                   return InkWell(
-                    onTap: () => pushWithAnimation(
-                      context,
-                      PackageDetail(
-                        package,
-                        currency: currency,
-                      ),
-                    ),
+                    onTap: () =>
+                        pushPackageDetail(context, package, currency),
                     child: AnimationConfiguration.staggeredList(
                       position: itemIndex,
                       delay: const Duration(milliseconds: 200),
@@ -358,6 +353,32 @@ class _PackagesState extends State<Packages> with TickerProviderStateMixin {
           },
         );
       },
+    );
+  }
+
+  // The host Navigator sits above the launcher's MultiProvider, so forward
+  // the booking providers onto the pushed route or PackageDetail throws
+  // ProviderNotFoundError (its "BOOK NOW" flow reads all three).
+  void pushPackageDetail(
+    BuildContext context,
+    PackagesListModel package,
+    String currency,
+  ) {
+    final guestProvider = context.read<GuestProvider>();
+    final packagesProviderRef = context.read<PackagesProvider>();
+    final loginProvider = context.read<LoginProvider>();
+    pushWithAnimation(
+      context,
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<GuestProvider>.value(value: guestProvider),
+          ChangeNotifierProvider<PackagesProvider>.value(
+            value: packagesProviderRef,
+          ),
+          ChangeNotifierProvider<LoginProvider>.value(value: loginProvider),
+        ],
+        child: PackageDetail(package, currency: currency),
+      ),
     );
   }
 
@@ -586,13 +607,8 @@ class _PackagesState extends State<Packages> with TickerProviderStateMixin {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       GestureDetector(
-                        onTap: () => pushWithAnimation(
-                          context,
-                          PackageDetail(
-                            package,
-                            currency: currency,
-                          ),
-                        ),
+                        onTap: () =>
+                            pushPackageDetail(context, package, currency),
                         child: Transform.translate(
                           offset: const Offset(0, 1),
                           child: Column(

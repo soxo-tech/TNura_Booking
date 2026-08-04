@@ -79,6 +79,25 @@ const bool _kStandaloneAppLoggedIn = false;
 /// Standalone default for OTP-enabled flag.
 const bool _kStandaloneOtpEnabled = false;
 
+/// Standalone default for the API-gateway signing toggle. When `true`
+/// (the default), [_kStandaloneClientId]/[_kStandaloneClientSecret]/
+/// [_kStandaloneEnv] must be filled in locally for signed requests to work —
+/// there is no built-in fallback. Set to `false` to send plain, unsigned
+/// requests during standalone testing instead.
+const bool _kStandaloneApiGatewayEnabled = true;
+
+/// Hardcoded API gateway client id used only when running standalone. Fill
+/// in locally for testing — never commit a real value here.
+const String _kStandaloneClientId = '';
+
+/// Hardcoded API gateway client secret used only when running standalone.
+/// Fill in locally for testing — never commit a real value here.
+const String _kStandaloneClientSecret = '';
+
+/// Hardcoded API gateway environment tag used only when running standalone.
+/// Fill in locally for testing — never commit a real value here.
+const String _kStandaloneEnv = '';
+
 /// Application entry point.
 ///
 /// Initialises Flutter bindings, then launches [Booking] with the standalone
@@ -102,6 +121,10 @@ void main() async {
     isEmailMandatory: _kStandaloneEmailMandatory,
     isAppLoggedIn: _kStandaloneAppLoggedIn,
     isOtpEnabled: _kStandaloneOtpEnabled,
+    apiGatewayEnabled: _kStandaloneApiGatewayEnabled,
+    clientId: _kStandaloneClientId,
+    clientSecret: _kStandaloneClientSecret,
+    env: _kStandaloneEnv,
   ));
 }
 
@@ -151,6 +174,19 @@ class Booking extends StatelessWidget {
   /// Whether OTP verification is required for guest contact details.
   final bool isOtpEnabled;
 
+  /// Whether calls to the booking backend should be signed for the host's
+  /// API gateway (mirrors [BookingFlowLauncher.apiGatewayEnabled]).
+  final bool apiGatewayEnabled;
+
+  /// API gateway client id, supplied by the host when [apiGatewayEnabled].
+  final String? clientId;
+
+  /// API gateway client secret, supplied by the host when [apiGatewayEnabled].
+  final String? clientSecret;
+
+  /// API gateway environment tag, supplied by the host when [apiGatewayEnabled].
+  final String? env;
+
   /// Creates the root [Booking] widget.
   ///
   /// [opno] and [token] are required; all other fields default to safe values
@@ -170,6 +206,10 @@ class Booking extends StatelessWidget {
     this.isEmailMandatory = false,
     this.isAppLoggedIn = true,
     this.isOtpEnabled = false,
+    this.apiGatewayEnabled = true,
+    this.clientId,
+    this.clientSecret,
+    this.env,
   });
 
   @override
@@ -191,6 +231,10 @@ class Booking extends StatelessWidget {
         isEmailMandatory: isEmailMandatory,
         isAppLoggedIn: isAppLoggedIn,
         isOtpEnabled: isOtpEnabled,
+        apiGatewayEnabled: apiGatewayEnabled,
+        clientId: clientId,
+        clientSecret: clientSecret,
+        env: env,
       ),
     );
   }

@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:developer';
 import 'dart:io';
-import 'package:booking/core/env.dart';
 import 'package:booking/services/navigation_services.dart';
 import 'package:booking/services/shared_preferences.dart';
 import 'package:dio/dio.dart';
@@ -67,15 +66,12 @@ class ApiService {
     String? baseURL = pref.getString('url');
     String dbptr = pref.getString('dbptr') ?? "";
 
-    // Priority: explicit per-call [bUrl] > host-supplied value in prefs >
-    // the module's own [Env] default. The last one guarantees a usable base
-    // URL even when the host doesn't pass one (e.g. standalone/dev runs).
-    final envBaseUrl = Env().baseURL;
-    final finalBaseUrl = bUrl ??
-        ((baseURL != null && baseURL.isNotEmpty) ? baseURL : envBaseUrl);
+    // Priority: explicit per-call [bUrl] > host-supplied value in prefs.
+    // There is no hardcoded fallback — the host must supply a base URL.
+    final finalBaseUrl = bUrl ?? baseURL ?? '';
     if (finalBaseUrl.isEmpty) {
       log(
-        "API ERROR: Base URL is empty. Ensure it is passed to the Launcher, saved in SharedPreferences, or set in Env.",
+        "API ERROR: Base URL is empty. Ensure it is passed to the Launcher or saved in SharedPreferences.",
       );
       return null;
     }

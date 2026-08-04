@@ -48,6 +48,23 @@ class BookingFlowLauncher  extends StatefulWidget {
   final bool isAppLoggedIn;
   final bool isOtpEnabled;
 
+  /// Whether calls to the booking backend should be signed for the host's
+  /// API gateway. When true, [clientId]/[clientSecret]/[env] are used to
+  /// HMAC-sign every request (falling back to the module's own dev defaults
+  /// when the host doesn't supply them). When false, requests are sent
+  /// as plain calls with no signature headers.
+  final bool apiGatewayEnabled;
+
+  /// API gateway client id, supplied by the host when [apiGatewayEnabled].
+  final String? clientId;
+
+  /// API gateway client secret, supplied by the host when [apiGatewayEnabled].
+  final String? clientSecret;
+
+  /// API gateway environment tag (e.g. "prod"/"dev"), supplied by the host
+  /// when [apiGatewayEnabled].
+  final String? env;
+
   /// When true, the launcher is being mounted inline inside a host screen
   /// (e.g. above a card on the home page) rather than as a full-page route.
   ///
@@ -77,6 +94,10 @@ class BookingFlowLauncher  extends StatefulWidget {
     this.isEmailMandatory = false,
     this.isAppLoggedIn = true,
     this.isOtpEnabled = false,
+    this.apiGatewayEnabled = true,
+    this.clientId,
+    this.clientSecret,
+    this.env,
     this.embedded = false,
     this.onUnauthorizedSlotBlocked,
   });
@@ -119,6 +140,10 @@ class _BookingFlowLauncherState extends State<BookingFlowLauncher> {
       deviceId: widget.deviceId,
       razorpayKey: widget.razorpayKey,
       opno: widget.opno,
+      apiGatewayEnabled: widget.apiGatewayEnabled,
+      clientId: widget.clientId,
+      clientSecret: widget.clientSecret,
+      env: widget.env,
     );
 
     if (mounted) {
