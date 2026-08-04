@@ -38,6 +38,10 @@ class SharedPreferenceController {
     String? deviceId,
     String? razorpayKey,
     String? opno,
+    bool? apiGatewayEnabled,
+    String? clientId,
+    String? clientSecret,
+    String? env,
   }) async {
     final pref = await SharedPreferencesService.prefs;
     if (baseURL != null) {
@@ -45,6 +49,18 @@ class SharedPreferenceController {
     }
     if (dbPtr != null) {
       await pref.setString("dbptr", dbPtr);
+    }
+    if (apiGatewayEnabled != null) {
+      await pref.setBool("apiGatewayEnabled", apiGatewayEnabled);
+    }
+    if (clientId != null) {
+      await pref.setString("clientId", clientId);
+    }
+    if (clientSecret != null) {
+      await pref.setString("clientSecret", clientSecret);
+    }
+    if (env != null) {
+      await pref.setString("env", env);
     }
     // Sent as the `realId` request header on every module API call.
     if (opno != null) {
