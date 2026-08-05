@@ -116,6 +116,20 @@ class _BookingFlowLauncherState extends State<BookingFlowLauncher> {
     _initializeModule();
   }
 
+  @override
+  void didUpdateWidget(covariant BookingFlowLauncher oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // The host re-renders this widget with a fresh [isAppLoggedIn] whenever
+    // auth state changes, but call sites (e.g. the Packages tab) keep the
+    // same [Key] across that transition so this State survives instead of
+    // remounting. Without this, [app_globals.isAppLoggedIn] would stay
+    // frozen at whatever it was on the very first build, effectively
+    // hardcoding login state for the module's lifetime.
+    if (widget.isAppLoggedIn != oldWidget.isAppLoggedIn) {
+      app_globals.isAppLoggedIn = widget.isAppLoggedIn;
+    }
+  }
+
   Future<void> _initializeModule() async {
    EasyLocalization.logger.enableLevels = [];
 

@@ -256,7 +256,7 @@ class PackagesProvider extends ChangeNotifier {
     bool shouldMigrate = false,
   }) async {
     final pref = await SharedPreferencesService.prefs;
-    final isLoggedIn = pref.getBool('isAppLoggedIn') ?? false;
+    final isLoggedIn = isAppLoggedIn;
 
     if (index < 0 || index >= bookingFlowBranches.length) return;
 
