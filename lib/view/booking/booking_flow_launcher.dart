@@ -4,6 +4,7 @@ import 'package:booking/provider/guests_provider.dart';
 import 'package:booking/provider/login_provider.dart';
 import 'package:booking/provider/package_provider.dart';
 import 'package:booking/services/api_services.dart';
+import 'package:booking/services/security_service/secure_fetch.dart';
 import 'package:booking/services/shared_preferences.dart';
 import 'package:booking/view/booking_list/appointment_history.dart';
 import 'package:booking/view/booking_list/booking_list.dart';
@@ -78,6 +79,13 @@ class BookingFlowLauncher  extends StatefulWidget {
   /// flow (e.g. to a login screen or the home tab).
   final VoidCallback? onUnauthorizedSlotBlocked;
 
+  /// Called when one of the module's own API calls comes back 401 and stays
+  /// 401 after the built-in refresh-and-retry attempt — i.e. this module's
+  /// short-lived session can't be recovered on its own. The host should
+  /// treat this as its own auth session being invalid too (e.g. force a full
+  /// app logout), since the same access token underlies both.
+  final VoidCallback? onUnauthorized;
+
   const BookingFlowLauncher({
     super.key,
     this.destination = BookingDestination.packages,
@@ -100,6 +108,7 @@ class BookingFlowLauncher  extends StatefulWidget {
     this.env,
     this.embedded = false,
     this.onUnauthorizedSlotBlocked,
+    this.onUnauthorized,
   });
 
   @override
@@ -128,6 +137,9 @@ class _BookingFlowLauncherState extends State<BookingFlowLauncher> {
     if (widget.isAppLoggedIn != oldWidget.isAppLoggedIn) {
       app_globals.isAppLoggedIn = widget.isAppLoggedIn;
     }
+    if (widget.onUnauthorized != oldWidget.onUnauthorized) {
+      onUnauthorized = widget.onUnauthorized;
+    }
   }
 
   Future<void> _initializeModule() async {
@@ -140,6 +152,7 @@ class _BookingFlowLauncherState extends State<BookingFlowLauncher> {
     app_globals.isEmailMadatory = widget.isEmailMandatory;
     app_globals.isAppLoggedIn = widget.isAppLoggedIn;
     app_globals.isOtpEnabled = widget.isOtpEnabled;
+    onUnauthorized = widget.onUnauthorized;
 
     // Seed the auth token in memory only — never persisted, so each launch
     // uses exactly the token the host passes and no stale copy can cause 401s.

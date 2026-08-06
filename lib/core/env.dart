@@ -16,7 +16,7 @@ class Env {
   String initiatePaymentV2 = '/bookings/initiate-payment-v2';
   String validateCoupon = '/campgndiscountcoupons/validate';
   //Booking history
-  String bookingList = 'bookings/booking-list';
+  String bookingList = '/bookings/booking-list';
   String resheduleAppointment({required String appointmentId}) {
     return '/bookings/reschedule-booking/$appointmentId';
   }

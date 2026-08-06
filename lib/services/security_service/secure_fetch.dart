@@ -8,6 +8,13 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'handle_401.dart';
 
+/// Invoked when a request is still unauthorized after [handle401]'s
+/// refresh-and-retry attempt — i.e. this module's own short-lived session is
+/// unrecoverable. Set by the host via [BookingFlowLauncher.onUnauthorized]
+/// so the host app can react (e.g. force a full app logout); this module has
+/// no concept of the host's auth flow beyond its own access/refresh tokens.
+void Function()? onUnauthorized;
+
 class SecureFetchResponse {
   final bool ok;
   final int status;
@@ -127,6 +134,10 @@ Future<SecureFetchResponse> secureFetch(
     if (newToken != null) {
       response = await makeRequest();
     }
+  }
+
+  if (response.statusCode == 401) {
+    onUnauthorized?.call();
   }
 
   dynamic data;
