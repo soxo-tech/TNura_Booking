@@ -967,7 +967,7 @@ class _AddGuestsDetailState extends State<AddGuestsDetail>
                                     decoration: BoxDecoration(
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black.withOpacity(0.05),
+                                          color: Colors.black.withValues(alpha: 0.05),
                                           blurRadius: 1,
                                           spreadRadius: 0.5,
                                           offset: Offset(0, 1),
@@ -994,7 +994,7 @@ class _AddGuestsDetailState extends State<AddGuestsDetail>
                                   decoration: BoxDecoration(
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withOpacity(0.05),
+                                        color: Colors.black.withValues(alpha: 0.05),
                                         blurRadius: 1,
                                         spreadRadius: 0.5,
                                         offset: Offset(0, 1),
@@ -1113,7 +1113,7 @@ class _AddGuestsDetailState extends State<AddGuestsDetail>
                                   decoration: BoxDecoration(
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withOpacity(0.05),
+                                        color: Colors.black.withValues(alpha: 0.05),
                                         blurRadius: 1,
                                         spreadRadius: 0.5,
                                         offset: Offset(0, 1),
@@ -1175,7 +1175,7 @@ class _AddGuestsDetailState extends State<AddGuestsDetail>
                               decoration: BoxDecoration(
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
+                                    color: Colors.black.withValues(alpha: 0.05),
                                     blurRadius: 1,
                                     spreadRadius: 0.5,
                                     offset: Offset(0, 1),
@@ -1224,7 +1224,7 @@ class _AddGuestsDetailState extends State<AddGuestsDetail>
                                         ],
                                       ),
                                     );
-                                  }).toList(),
+                                  }),
                                 ],
                               ),
                             ),

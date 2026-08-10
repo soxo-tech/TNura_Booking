@@ -75,7 +75,7 @@ class PackagesProvider extends ChangeNotifier {
       endpoint: Env().branchListAPI,
       dbPtr: country == 'Mongolia' ? 'nuramho' : null,
     ).then((response) {
-      var json = response?.data;
+      var json = response.data;
       log(json.toString());
       branches = BranchesModel.fromJson(json).result ?? [];
       notifyListeners();
@@ -183,8 +183,8 @@ class PackagesProvider extends ChangeNotifier {
         dbPtr: dbptr,
       );
       // log('Branches Response: ${response?.data}');
-      if (response?.data['statusCode'] == 200) {
-        var json = response?.data;
+      if (response.data['statusCode'] == 200) {
+        var json = response.data;
         BookingFlowBranchesList branchList = BookingFlowBranchesList.fromJson(
           json,
         );
@@ -406,7 +406,7 @@ class PackagesProvider extends ChangeNotifier {
         dbPtr: branchDbPtr,
       );
 
-      final rawData = response?.data;
+      final rawData = response.data;
       // log('Packages List: $rawData');
       // The packages API now returns a `{statusCode, message, success, result}`
       // envelope with the list under `result`. Older responses returned the

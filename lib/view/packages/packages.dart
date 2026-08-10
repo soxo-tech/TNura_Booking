@@ -308,7 +308,7 @@ class _PackagesState extends State<Packages> with TickerProviderStateMixin {
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount: provider.bookingFlowBranches.length,
-                          separatorBuilder: (_, __) => setHeight(10),
+                          separatorBuilder: (_, _) => setHeight(10),
                           itemBuilder: (_, index) => GestureDetector(
                             onTap: () async {
                               await provider.handleBranchSelection(
@@ -715,7 +715,7 @@ class _PackagesState extends State<Packages> with TickerProviderStateMixin {
                               borderRadius: BorderRadius.circular(4),
                               color: provider.isBookingNowButtonLoading &&
                                       loadingIndex == index
-                                  ? const Color(0xFFF1B426).withOpacity(0.4)
+                                  ? const Color(0xFFF1B426).withValues(alpha: 0.4)
                                   : const Color(0xFFF1B426),
                             ),
                             child: Center(

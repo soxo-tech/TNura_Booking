@@ -98,7 +98,7 @@ String cleanNullParams(String url) {
 
   final params = Map.fromEntries(
     uri.queryParameters.entries.where(
-      (e) => e.value != null && e.value != "null" && e.value!.isNotEmpty,
+      (e) => e.value != "null" && e.value.isNotEmpty,
     ),
   );
 

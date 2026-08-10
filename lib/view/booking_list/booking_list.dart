@@ -233,7 +233,7 @@ class _BookingListScreenState extends State<BookingListScreen> with TickerProvid
                             Navigator.push(
                               context,
                               PageRouteBuilder(
-                                pageBuilder: (_, __, ___) =>
+                                pageBuilder: (_, _, _) =>
                                     _withModuleProviders(
                                         context, AppointmentHistory()),
                                 transitionDuration: Duration.zero,
@@ -270,7 +270,7 @@ class _BookingListScreenState extends State<BookingListScreen> with TickerProvid
       : const BouncingScrollPhysics(),
   padding: EdgeInsets.zero, // No padding at start/end
   itemCount: validResults.length,
-  separatorBuilder: (_, __) => const SizedBox(width: 15),
+  separatorBuilder: (_, _) => const SizedBox(width: 15),
   itemBuilder: (context, index) {
                       final booking = validResults[index];
                       DateTime dt = booking.daDate!;
@@ -307,7 +307,7 @@ class _BookingListScreenState extends State<BookingListScreen> with TickerProvid
                             context,
                             PageRouteBuilder(
                               transitionDuration: Duration(milliseconds: 400),
-                              pageBuilder: (_, __, ___) => _withModuleProviders(
+                              pageBuilder: (_, _, _) => _withModuleProviders(
                                 context,
                                 AppointmentDetail(
                                   addonPackageList:
@@ -319,7 +319,7 @@ class _BookingListScreenState extends State<BookingListScreen> with TickerProvid
                                   packageDrId: packageDrId,
                                 ),
                               ),
-                              transitionsBuilder: (_, animation, __, child) {
+                              transitionsBuilder: (_, animation, _, child) {
                                 return FadeTransition(
                                   opacity: animation,
                                   child: ScaleTransition(
@@ -342,7 +342,7 @@ class _BookingListScreenState extends State<BookingListScreen> with TickerProvid
                               color: AppColors.white,
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
+                                  color: Colors.black.withValues(alpha: 0.05),
                                   blurRadius: 1,
                                   spreadRadius: 0.5,
                                   offset: Offset(0, 1),
@@ -379,8 +379,8 @@ class _BookingListScreenState extends State<BookingListScreen> with TickerProvid
                                                 height: 20,
                                                 child: CircularProgressIndicator(
                                                   strokeWidth: 2,
-                                                  color: Colors.white.withOpacity(
-                                                    0.5,
+                                                  color: Colors.white.withValues(
+                                                    alpha: 0.5,
                                                   ),
                                                 ),
                                               ),
@@ -411,7 +411,7 @@ class _BookingListScreenState extends State<BookingListScreen> with TickerProvid
                                         SizedBox(width: 5),
                                         RefractedText(
                                           text:
-                                              '${booking?.daFname} ${booking?.daLname}',
+                                              '${booking.daFname} ${booking.daLname}',
                                           fontSize: 12,
                                           fontWeight: FontWeight.w600,
                                           textColor: AppColors.packageTextPrimary,

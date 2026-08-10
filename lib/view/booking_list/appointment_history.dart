@@ -59,7 +59,7 @@ class _AppointmentHistoryState extends State<AppointmentHistory>
   }
 
   // Triggers a simple scale and opacity animation.
-  triggerAnimation() {
+  void triggerAnimation() {
     setState(() {
       opacity = 0;
       scale = 2;
@@ -187,7 +187,7 @@ class _AppointmentHistoryState extends State<AppointmentHistory>
                             key: PageStorageKey("appointment_list"),
                             padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
                             itemCount: validResults.length,
-                            separatorBuilder: (_, __) =>
+                            separatorBuilder: (_, _) =>
                                 const SizedBox(height: 10),
                             itemBuilder: (context, index) {
                               final booking = validResults[index];
@@ -265,7 +265,7 @@ class _AppointmentHistoryState extends State<AppointmentHistory>
                                       color: AppColors.white,
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black.withOpacity(0.08),
+                                          color: Colors.black.withValues(alpha: 0.08),
                                           blurRadius: 10,
                                           offset: const Offset(0, 4),
                                         ),

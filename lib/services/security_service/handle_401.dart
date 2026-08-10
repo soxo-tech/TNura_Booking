@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 Future<String?> handle401() async {
-  const BASE_URL = String.fromEnvironment('BASE_URL');
+  const baseUrl = String.fromEnvironment('BASE_URL');
 
   final prefs = await SharedPreferences.getInstance();
   final refreshToken = prefs.getString('refreshToken');
@@ -20,7 +20,7 @@ Future<String?> handle401() async {
   );
 
   final res = await http.post(
-    Uri.parse(BASE_URL + secure.canonicalEndpoint),
+    Uri.parse(baseUrl + secure.canonicalEndpoint),
     headers: secure.headers,
     body: secure.rawBody,
   );

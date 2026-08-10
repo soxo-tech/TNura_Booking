@@ -70,7 +70,7 @@ class LoginProvider extends ChangeNotifier {
 
       log("booking list res:::::: ${response.data}");
 
-      if (response != null && response.data['statusCode'] == 200) {
+      if (response.data['statusCode'] == 200) {
         /// Remove extra nested list from result
         if (response.data['result'] != null &&
             response.data['result'] is List &&
@@ -140,7 +140,7 @@ class LoginProvider extends ChangeNotifier {
         method: 'GET',
       );
       log('Profile API response: ${response.status} - ${response.data}');
-      if (response != null && response.data['statusCode'] == 200) {
+      if (response.data['statusCode'] == 200) {
         var json = response.data;
         profileModel = ProfileModel.fromJson(json);
       } else {
