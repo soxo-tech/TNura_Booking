@@ -392,7 +392,7 @@ class GuestProvider extends ChangeNotifier {
       );
       
 
-      final data = res?.data;
+      final data = res.data;
       log('Payment status response: $data');
       if (data == null || data['status'] != 200 || data['success'] != true) {
         _setPaymentProcessing(false);
@@ -463,7 +463,7 @@ class GuestProvider extends ChangeNotifier {
       );
      
 
-      final data = res?.data;
+      final data = res.data;
       log('Add-on tests response: $data');
       if (data == null ||
           data['statusCode'] != 200 ||
@@ -1351,7 +1351,7 @@ class GuestProvider extends ChangeNotifier {
         dbPtr: branchDbptr,
       );
 
-      if (response != null && response.data != null) {
+      if (response.data != null) {
         log('SaveOrder Response: ${jsonEncode(response.data)}');
 
         return true;
@@ -1420,7 +1420,7 @@ class GuestProvider extends ChangeNotifier {
         dbPtr: branchDbptr,
       );
 
-      if (response != null && response.data != null) {
+      if (response.data != null) {
         log('SaveOrder Response: ${jsonEncode(response.data)}');
 
         return true;
@@ -1491,7 +1491,7 @@ class GuestProvider extends ChangeNotifier {
       dbPtr: branchDbptr,
     );
 
-    if (response != null && response.data != null) {
+    if (response.data != null) {
       log('📥 Response: ${jsonEncode(response.data)}');
       final success = response.data['success'] == true;
       final message = response.data['message'] ?? "Something went wrong.";
@@ -1549,7 +1549,7 @@ class GuestProvider extends ChangeNotifier {
         dbPtr: branchDbptr,
       );
 
-      if (response != null && response.data != null) {
+      if (response.data != null) {
         log('Update Guest Payload: ${jsonEncode(data)}');
         log('Update Guest Response: ${response.data}');
 
@@ -1610,10 +1610,10 @@ class GuestProvider extends ChangeNotifier {
       dbPtr: branchDbptr,
     );
 
-    log('slotBlocking response statusCode: ${response?.data?['statusCode']}, '
+    log('slotBlocking response statusCode: ${response.data?['statusCode']}, '
         'isLoggedIn: $isLoggedIn, otpVerified: ${guest.otpVerified}, '
         'hasUnauthorizedCallback: ${onUnauthorizedSlotBlocked != null}');
-    if (response?.data != null && response!.data['statusCode'] == 200) {
+    if (response.data != null && response.data['statusCode'] == 200) {
       if (isLoggedIn) {
         // 3. APP-LOGGED-IN FLOW: Move directly to Confirmation
         guest.step = GuestStep.confirmation;
@@ -1723,11 +1723,11 @@ class GuestProvider extends ChangeNotifier {
       log('Response Data: ${jsonEncode(response.data)}');
       if ((response.status == 200 || response.status == 201) &&
           response.data['success'] == true) {
-        paymentv2Id = response?.data['data'];
+        paymentv2Id = response.data['data'];
         log('paymentV2 Id from initiate payment: $paymentId');
         // Hide loader before opening Razorpay
 
-        log('Initiate PaymentV2 Response: ${jsonEncode(response?.data)}');
+        log('Initiate PaymentV2 Response: ${jsonEncode(response.data)}');
         _currentGuestIndex = index;
         await initiatePayment(context, paymentv2Id);
         log('Initiated Payment Successfully');
@@ -1735,7 +1735,7 @@ class GuestProvider extends ChangeNotifier {
         _setPaymentProcessing(false);
         showSnackBar(
           context,
-          response?.data['message'] ?? "Failed to initiate payment. Try again.",
+          response.data['message'] ?? "Failed to initiate payment. Try again.",
         );
       }
     } catch (e) {
@@ -2336,7 +2336,7 @@ class GuestProvider extends ChangeNotifier {
         return true;
       } else {
         showSnackBar(
-            context, response?.data['message'] ?? 'Something went wrong');
+            context, response.data['message'] ?? 'Something went wrong');
         return false;
       }
     } catch (e) {
@@ -2815,7 +2815,7 @@ class GuestProvider extends ChangeNotifier {
         body: jsonEncode(data),
         // dbPtr: branchDbptr
       );
-      log('Otp Verification response: ${response!.data}');
+      log('Otp Verification response: ${response.data}');
       return response.data;
     } catch (e) {
       log("Error verifying OTP: $e");
@@ -2983,7 +2983,7 @@ class GuestProvider extends ChangeNotifier {
         endpoint: slotUrl,
         dbPtr: branchDbptr,
       );
-      var json = response?.data;
+      var json = response.data;
       log('Slots Json: $json');
       if (json != null) {
         if (json['status_code'] != 200) {

@@ -114,6 +114,20 @@ class _AppointmentDetailState extends State<AppointmentDetail>
           final isEmpty = results != null && results.isEmpty;
           DateTime dt = updatedBooking!.daDate!;
 
+          // Reschedule/Cancel are only offered up to 2 days before the
+          // appointment date (e.g. an appointment on Jan 10th can be
+          // rescheduled/cancelled through Jan 8th, and not on/after Jan 9th).
+          final now = DateTime.now();
+          final today = DateTime(now.year, now.month, now.day);
+          final appointmentDate = DateTime(dt.year, dt.month, dt.day);
+          final modificationCutoff = appointmentDate.subtract(
+            const Duration(days: 2),
+          );
+          final canModifyBooking = !today.isAfter(modificationCutoff);
+          final visibleActions = canModifyBooking
+              ? actions
+              : <AppointmentDetailAction>[];
+
           final formattedDate = loginProvider.formatHistoryDate(dt);
           final package = packagesProvider.getPackageByCode(
             updatedBooking.daPackagetypevalue,
@@ -452,172 +466,176 @@ class _AppointmentDetailState extends State<AppointmentDetail>
                             ],
                           ),
                         ),
-                        SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.fromLTRB(15, 15, 15, 0),
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: AppColors.white,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.08),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
+                        if (visibleActions.isNotEmpty) SizedBox(height: 8),
+                        if (visibleActions.isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.fromLTRB(15, 15, 15, 0),
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: AppColors.white,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.08),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                              borderRadius: const BorderRadius.all(
+                                Radius.circular(10),
                               ),
-                            ],
-                            borderRadius: const BorderRadius.all(
-                              Radius.circular(10),
-                            ),
-                            border: Border.all(
-                              color: AppColors.slotDateContainerBorderColor,
-                              width: 1.5,
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              RefractedText(
-                                textColor: AppColors.textFieldHintColor,
-                                text: 'Quick Actions',
-                                fontSize: 10,
-                                fontWeight: FontWeight.w400,
-                                textAlign: TextAlign.center,
+                              border: Border.all(
+                                color: AppColors.slotDateContainerBorderColor,
+                                width: 1.5,
                               ),
-                              SizedBox(height: 15),
-                              ListView.builder(
-                                itemCount: actions.length,
-                                shrinkWrap: true,
-                                physics: NeverScrollableScrollPhysics(),
-                                itemBuilder: (context, index) {
-                                  return Padding(
-                                    padding: EdgeInsets.only(
-                                      bottom: index == actions.length - 1
-                                          ? 0
-                                          : 10,
-                                    ),
-                                    child: GestureDetector(
-                                      onTap: () async {
-                                        if (actions[index].title
-                                                .toLowerCase() ==
-                                            "cancel") {
-                                          showCancelDialog(context);
-                                        } else if (actions[index].title
-                                                .toLowerCase() ==
-                                            "reschedule") {
-                                          final gp = context
-                                              .read<GuestProvider>();
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                RefractedText(
+                                  textColor: AppColors.textFieldHintColor,
+                                  text: 'Quick Actions',
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w400,
+                                  textAlign: TextAlign.center,
+                                ),
+                                SizedBox(height: 15),
+                                ListView.builder(
+                                  itemCount: visibleActions.length,
+                                  shrinkWrap: true,
+                                  physics: NeverScrollableScrollPhysics(),
+                                  itemBuilder: (context, index) {
+                                    return Padding(
+                                      padding: EdgeInsets.only(
+                                        bottom:
+                                            index == visibleActions.length - 1
+                                            ? 0
+                                            : 10,
+                                      ),
+                                      child: GestureDetector(
+                                        onTap: () async {
+                                          if (visibleActions[index].title
+                                                  .toLowerCase() ==
+                                              "cancel") {
+                                            showCancelDialog(context);
+                                          } else if (visibleActions[index].title
+                                                  .toLowerCase() ==
+                                              "reschedule") {
+                                            final gp = context
+                                                .read<GuestProvider>();
 
-                                          showDialog(
-                                            context: context,
-                                            barrierDismissible: false,
-                                            builder: (_) => Center(
-                                              child:
-                                                  CircularProgressIndicator(),
-                                            ),
-                                          );
-
-                                          await gp.prepareGuestFromBooking(
-                                            context: context,
-                                            booking: updatedBooking,
-                                            packageName: widget.packageName,
-                                            packageDrId: widget.packageDrId,
-                                          );
-
-                                          Navigator.pop(context);
-                                          gp.isFromReschedule = true;
-                                          gp.rescheduleAppointmentId =
-                                              updatedBooking.daId.toString();
-                                          if (context.mounted) {
-                                            // The host's Navigator sits
-                                            // above the booking module's
-                                            // MultiProvider, so forward
-                                            // the existing instances or
-                                            // AddGuestsDetail throws
-                                            // ProviderNotFoundException.
-                                            final packagesProvider = context
-                                                .read<PackagesProvider>();
-                                            final loginProvider = context
-                                                .read<LoginProvider>();
-                                            final result = await Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (_) => MultiProvider(
-                                                  providers: [
-                                                    ChangeNotifierProvider<
-                                                      GuestProvider
-                                                    >.value(value: gp),
-                                                    ChangeNotifierProvider<
-                                                      PackagesProvider
-                                                    >.value(
-                                                      value: packagesProvider,
-                                                    ),
-                                                    ChangeNotifierProvider<
-                                                      LoginProvider
-                                                    >.value(
-                                                      value: loginProvider,
-                                                    ),
-                                                  ],
-                                                  child: AddGuestsDetail(),
-                                                ),
-                                                settings: const RouteSettings(
-                                                  name: '/AddGuestsDetail',
-                                                ),
+                                            showDialog(
+                                              context: context,
+                                              barrierDismissible: false,
+                                              builder: (_) => Center(
+                                                child:
+                                                    CircularProgressIndicator(),
                                               ),
                                             );
 
-                                            if (result == true) {}
-                                          }
-                                        }
-                                      },
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.start,
-                                            children: [
-                                              Container(
-                                                padding: EdgeInsets.all(12),
-                                                decoration: BoxDecoration(
-                                                  color: actions[index]
-                                                      .backgroundColor,
-                                                  borderRadius:
-                                                      BorderRadius.circular(
-                                                        100,
+                                            await gp.prepareGuestFromBooking(
+                                              context: context,
+                                              booking: updatedBooking,
+                                              packageName: widget.packageName,
+                                              packageDrId: widget.packageDrId,
+                                            );
+
+                                            Navigator.pop(context);
+                                            gp.isFromReschedule = true;
+                                            gp.rescheduleAppointmentId =
+                                                updatedBooking.daId.toString();
+                                            if (context.mounted) {
+                                              // The host's Navigator sits
+                                              // above the booking module's
+                                              // MultiProvider, so forward
+                                              // the existing instances or
+                                              // AddGuestsDetail throws
+                                              // ProviderNotFoundException.
+                                              final packagesProvider = context
+                                                  .read<PackagesProvider>();
+                                              final loginProvider = context
+                                                  .read<LoginProvider>();
+                                              final result = await Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (_) => MultiProvider(
+                                                    providers: [
+                                                      ChangeNotifierProvider<
+                                                        GuestProvider
+                                                      >.value(value: gp),
+                                                      ChangeNotifierProvider<
+                                                        PackagesProvider
+                                                      >.value(
+                                                        value: packagesProvider,
                                                       ),
+                                                      ChangeNotifierProvider<
+                                                        LoginProvider
+                                                      >.value(
+                                                        value: loginProvider,
+                                                      ),
+                                                    ],
+                                                    child: AddGuestsDetail(),
+                                                  ),
+                                                  settings: const RouteSettings(
+                                                    name: '/AddGuestsDetail',
+                                                  ),
                                                 ),
-                                                child: SvgPicture.asset(
-                                                  actions[index].icon,
-                                                  height: 14,
-                                                  width: 14,
+                                              );
+
+                                              if (result == true) {}
+                                            }
+                                          }
+                                        },
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.start,
+                                              children: [
+                                                Container(
+                                                  padding: EdgeInsets.all(12),
+                                                  decoration: BoxDecoration(
+                                                    color: visibleActions[index]
+                                                        .backgroundColor,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          100,
+                                                        ),
+                                                  ),
+                                                  child: SvgPicture.asset(
+                                                    visibleActions[index].icon,
+                                                    height: 14,
+                                                    width: 14,
+                                                  ),
                                                 ),
-                                              ),
-                                              SizedBox(width: 8),
-                                              RefractedText(
-                                                textColor: AppColors
-                                                    .packageTextPrimary,
-                                                text: actions[index].title,
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w500,
-                                                textAlign: TextAlign.center,
-                                              ),
-                                            ],
-                                          ),
-                                          Icon(
-                                            Icons.arrow_forward_ios,
-                                            size: 12,
-                                            color: AppColors.textFieldHintColor,
-                                          ),
-                                        ],
+                                                SizedBox(width: 8),
+                                                RefractedText(
+                                                  textColor: AppColors
+                                                      .packageTextPrimary,
+                                                  text: visibleActions[index]
+                                                      .title,
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w500,
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ],
+                                            ),
+                                            Icon(
+                                              Icons.arrow_forward_ios,
+                                              size: 12,
+                                              color:
+                                                  AppColors.textFieldHintColor,
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ],
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
                       ],
                     ),
                   ),

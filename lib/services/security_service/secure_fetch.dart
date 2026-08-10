@@ -38,7 +38,7 @@ Future<SecureFetchResponse> secureFetch(
   // Base URL, gateway toggle and signing credentials all come from the host
   // via BookingFlowLauncher (persisted by SharedPreferenceController) — there
   // is no hardcoded fallback.
-  final BASE_URL = pref.getString('url') ?? '';
+  final baseUrl = pref.getString('url') ?? '';
   final gatewayEnabled = pref.getBool('apiGatewayEnabled') ?? true;
   final gatewayClientId = pref.getString('clientId');
   final gatewayClientSecret = pref.getString('clientSecret');
@@ -46,7 +46,7 @@ Future<SecureFetchResponse> secureFetch(
   final httpMethod = method.toUpperCase();
   String dbptr = pref.getString('dbptr') ?? "";
 
-  if (BASE_URL.isEmpty) {
+  if (baseUrl.isEmpty) {
     log(
       'API ERROR: Base URL is empty. Ensure it is passed to BookingFlowLauncher by the host.',
     );
@@ -80,7 +80,7 @@ Future<SecureFetchResponse> secureFetch(
     // 'token' pref key is never written. Fall back to prefs for legacy callers.
     final token = ApiService.authToken ?? prefs.getString('token');
 
-    final fullUrl = BASE_URL + finalEndpoint;
+    final fullUrl = baseUrl + finalEndpoint;
 
     final request = http.Request(
       httpMethod,
