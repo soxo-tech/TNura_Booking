@@ -129,9 +129,6 @@ class _AppointmentDetailState extends State<AppointmentDetail>
               : <AppointmentDetailAction>[];
 
           final formattedDate = loginProvider.formatHistoryDate(dt);
-          final package = packagesProvider.getPackageByCode(
-            updatedBooking.daPackagetypevalue,
-          );
           return AnimatedSwitcher(
             duration: const Duration(milliseconds: 500),
             child: isLoading
@@ -539,6 +536,8 @@ class _AppointmentDetailState extends State<AppointmentDetail>
                                               packageDrId: widget.packageDrId,
                                             );
 
+                                            if (!context.mounted) return;
+                                            // Dismiss the loading dialog.
                                             Navigator.pop(context);
                                             gp.isFromReschedule = true;
                                             gp.rescheduleAppointmentId =
@@ -688,17 +687,7 @@ class _AppointmentDetailState extends State<AppointmentDetail>
                   ],
                 ),
               ),
-              const SizedBox(height: 10),
-              // const RefractedText(
-              //   textAlign: TextAlign.center,
-              //   text:
-              //       'This action cannot be undone. You’ll need to book again if you change your mind.',
-              //   fontSize: 14,
-              //   fontWeight: FontWeight.w400,
-              //   textColor: AppColors.packageTextPrimary,
-              //   overflow: TextOverflow.fade,
-              // ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 20),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -709,7 +698,6 @@ class _AppointmentDetailState extends State<AppointmentDetail>
                     child: Container(
                       width: 100,
                       height: 30,
-                      // padding: const EdgeInsets.fromLTRB(10, 7, 10, 7),
                       decoration: BoxDecoration(
                         color: AppColors.selectLocationButtonColor,
                         borderRadius: BorderRadius.circular(20),
@@ -725,30 +713,6 @@ class _AppointmentDetailState extends State<AppointmentDetail>
                       ),
                     ),
                   ),
-                  // const SizedBox(
-                  //   height: 8,
-                  // ),
-                  // GestureDetector(
-                  //   onTap: () {
-                  //     Navigator.pop(context);
-                  //   },
-                  //   child: Container(
-                  //     padding: const EdgeInsets.fromLTRB(10, 7, 10, 7),
-                  //     decoration: BoxDecoration(
-                  //       color: AppColors.gobackButtonBackgroundColor,
-                  //       borderRadius: BorderRadius.circular(20),
-                  //     ),
-                  //     child: Center(
-                  //       child: RefractedText(
-                  //         textAlign: TextAlign.center,
-                  //         text: 'Go back',
-                  //         fontSize: 15,
-                  //         fontWeight: FontWeight.w500,
-                  //         textColor: AppColors.packageTextPrimary,
-                  //       ),
-                  //     ),
-                  //   ),
-                  // ),
                 ],
               ),
             ],

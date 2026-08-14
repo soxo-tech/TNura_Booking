@@ -8,7 +8,6 @@ import 'package:booking/model/branches_model.dart';
 import 'package:booking/model/packages_list_model.dart';
 import 'package:booking/provider/guests_provider.dart';
 import 'package:booking/provider/login_provider.dart';
-import 'package:booking/services/api_services.dart';
 import 'package:booking/services/security_service/secure_fetch.dart';
 import 'package:booking/view/booking/booking.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -182,7 +181,6 @@ class PackagesProvider extends ChangeNotifier {
         endpoint: Env().branchListAPI,
         dbPtr: dbptr,
       );
-      // log('Branches Response: ${response?.data}');
       if (response.data['statusCode'] == 200) {
         var json = response.data;
         BookingFlowBranchesList branchList = BookingFlowBranchesList.fromJson(
@@ -407,7 +405,6 @@ class PackagesProvider extends ChangeNotifier {
       );
 
       final rawData = response.data;
-      // log('Packages List: $rawData');
       // The packages API now returns a `{statusCode, message, success, result}`
       // envelope with the list under `result`. Older responses returned the
       // list directly (or nested one level). Handle all three shapes.
@@ -420,13 +417,6 @@ class PackagesProvider extends ChangeNotifier {
         } else {
           itemsToParse = rawData;
         }
-      }
-
-      // TEMP DEBUG: print the field names of the first item so we can map the
-      // new API keys (doctor id, rate, cost). Remove once mapping is confirmed.
-      if (itemsToParse.isNotEmpty && itemsToParse.first is Map) {
-        // log('PKG ITEM KEYS: ${(itemsToParse.first as Map).keys.toList()}',
-        //     name: 'pkgdebug');
       }
 
       final List<PackagesListModel> tempList = [];
@@ -459,7 +449,6 @@ class PackagesProvider extends ChangeNotifier {
       }
 
       packagesList = tempList;
-      // log('Packages List: $tempList');
     } catch (globalError) {
       log("Global API Error: $globalError");
     } finally {

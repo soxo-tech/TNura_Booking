@@ -3,7 +3,7 @@ import 'dart:developer';
 import 'package:booking/services/api_services.dart';
 import 'package:booking/services/security_service/secure_headers.dart';
 import 'package:booking/services/shared_preferences.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'handle_401.dart';
@@ -107,27 +107,31 @@ Future<SecureFetchResponse> secureFetch(
     request.headers.addAll(finalHeaders);
     request.body =
         (httpMethod == 'GET' || httpMethod == 'DELETE') ? '' : secure.rawBody;
-    debugPrint("----------- API REQUEST -----------");
-    debugPrint("Url: $fullUrl");
-    debugPrint("Method: $httpMethod");
-    debugPrint("Require auth: $requireAuth");
-    debugPrint("Token: ${requireAuth ? token : "Not used"}");
+    // Debug builds only: these dumps include the bearer token, the signing
+    // headers and patient data, none of which may reach release logs.
+    if (kDebugMode) {
+      debugPrint("----------- API REQUEST -----------");
+      debugPrint("Url: $fullUrl");
+      debugPrint("Method: $httpMethod");
+      debugPrint("Require auth: $requireAuth");
+      debugPrint("Token: ${requireAuth ? token : "Not used"}");
 
-    log("Headers: ");
-    finalHeaders.forEach((key, value) {
-      debugPrint("$key: $value");
-    });
+      log("Headers: ");
+      finalHeaders.forEach((key, value) {
+        debugPrint("$key: $value");
+      });
 
-    if (request.body.isNotEmpty) {
-      debugPrint("Body: ${request.body}");
-    } else {
-      debugPrint("Body: empty");
+      debugPrint(
+        request.body.isNotEmpty ? "Body: ${request.body}" : "Body: empty",
+      );
     }
     return request.send().then(http.Response.fromStream);
   }
 
   var response = await makeRequest();
-  debugPrint("Response: ${response.statusCode} - ${response.body}");
+  if (kDebugMode) {
+    debugPrint("Response: ${response.statusCode} - ${response.body}");
+  }
   if (response.statusCode == 401) {
     final newToken = await handle401();
 

@@ -1444,16 +1444,6 @@ class GuestProvider extends ChangeNotifier {
     final long = pref.getString(longitude);
     await ensureGuestToken();
 
-    //  Safely handle nulls before formatting
-    String formattedDate = "";
-    String formattedTime = "";
-
-    formattedDate = DateFormat('yyyy-MM-dd').format(guest.selectedDate);
-
-    if (guest.selectedSlot != null) {
-      formattedTime = guest.selectedSlot!;
-    }
-
     var data = {
       "mode": "app",
       "device_id": deviceId,

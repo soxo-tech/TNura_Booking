@@ -123,14 +123,6 @@ class _PaymentSuccessfulState extends State<PaymentSuccessful> {
               fontWeight: FontWeight.w400,
               textColor: AppColors.packageTextPrimary,
             ),
-            // const SizedBox(height: 3),
-            // const RefractedText(
-            //   text:
-            //       'All set. Your confirmation will be sent to the contact info below.',
-            //   fontSize: 18,
-            //   fontWeight: FontWeight.w400,
-            //   textColor: AppColors.packageHeadColor,
-            // ),
             const SizedBox(height: 10),
             buildTransactionDetails(guestProvider, pdfBase64),
             buildAppointmentDetails(guestProvider),

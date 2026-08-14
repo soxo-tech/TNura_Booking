@@ -7,9 +7,7 @@ import 'package:booking/model/profile_model.dart';
 import 'package:booking/services/api_services.dart';
 import 'package:booking/services/security_service/secure_fetch.dart';
 import 'package:booking/services/shared_preferences.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 
 /// A provider for managing the login state, including user credentials, authentication methods, and profile data.
 

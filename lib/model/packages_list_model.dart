@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer';
 
 List<PackagesListModel> packagesListModelFromJson(String str) =>
     List<PackagesListModel>.from(json.decode(str).map((x) => x));
@@ -91,7 +92,7 @@ class PackagesListModel {
         decodedOtherDet3 = jsonDecode(json["otherDetails3"]);
       }
     } catch (e) {
-      print("Error decoding otherDetails3: $e");
+      log("Error decoding otherDetails3: $e");
       decodedOtherDet3 = {};
     }
     return PackagesListModel(
