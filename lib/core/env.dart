@@ -1,11 +1,12 @@
 class Env {
   //Branches List
   String branchListAPI = '/bookings/branches';
-  String bookingFlowBranchersAPI = '/branch-master/get-records?includes=address';
+  String bookingFlowBranchersAPI =
+      '/branch-master/get-records?includes=address';
   String migrateAccountAPI = '/bookings/migrate-account';
   String packagesListAPI = '/bookings/packages';
   String getPaymentStatus({required String paymentId}) {
-    return 'bookings/payment-status?payment_id=$paymentId';
+    return '/bookings/payment-status?payment_id=$paymentId';
   }
 
   String applyCoupon = '/bookings/validate-coupon';
@@ -25,9 +26,9 @@ class Env {
     return '/item/get-all-items/$packageTypeValue';
   }
 
-  String initiateOrder =
-      'https://nura-payment-develop.onedesk.app/payment/initiate-order';
-      // 'https://k2jjc12z-3800.inc1.devtunnels.ms/payment/initiate-order';
+  String initiateOrder = 'https://payment-demo.onedesk.app/payment/initiate-order';
+  // 'https://nura-payment-develop.onedesk.app/payment/initiate-order';
+  // 'https://k2jjc12z-3800.inc1.devtunnels.ms/payment/initiate-order';
   String appointmentDetails = '/bookings/active-appointment';
   String generateOtpForGuestsUser = '/bookings/generate-otp';
   String verifyOtpForGuestUser = '/bookings/verify-otp';
@@ -38,6 +39,4 @@ class Env {
   }) {
     return '/bookings/available-slots?doctor=$doctorId&start_date=$startDate&end_date=$endDate';
   }
-
-  
 }
