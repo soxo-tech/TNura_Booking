@@ -872,7 +872,6 @@ class _GuestDetailState extends State<GuestDetail>
                   thickness: 1,
                 ),
               ),
-            // SizedBox(height: 15),
           ],
         ),
         if (guestProvider.guests.length > 2)

@@ -26,9 +26,8 @@ class Env {
     return '/item/get-all-items/$packageTypeValue';
   }
 
-  String initiateOrder = 'https://payment-demo.onedesk.app/payment/initiate-order';
-  // 'https://nura-payment-develop.onedesk.app/payment/initiate-order';
-  // 'https://k2jjc12z-3800.inc1.devtunnels.ms/payment/initiate-order';
+  String initiateOrder =
+      'https://payment-demo.onedesk.app/payment/initiate-order';
   String appointmentDetails = '/bookings/active-appointment';
   String generateOtpForGuestsUser = '/bookings/generate-otp';
   String verifyOtpForGuestUser = '/bookings/verify-otp';

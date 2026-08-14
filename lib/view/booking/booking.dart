@@ -466,7 +466,6 @@ class _AddGuestsDetailState extends State<AddGuestsDetail>
                               thickness: 1,
                             ),
                           ),
-                        // SizedBox(height: 15),
                       ],
                     );
                   },

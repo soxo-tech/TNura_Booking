@@ -256,13 +256,10 @@ class _BookingListScreenState extends State<BookingListScreen> with TickerProvid
                   scale: _scaleAnim,
                   child: LayoutBuilder(
                     builder: (context, constraints) {
-                    // When there's only a single booking, the card fits the
-                    // full available width; otherwise it keeps the peeking
-                    // 85%-width card so adjacent cards hint at horizontal scroll.
+                    // When there's only a single booking the list stops
+                    // scrolling; otherwise the cards keep the peeking layout so
+                    // adjacent cards hint at horizontal scroll.
                     final bool isSingle = validResults.length == 1;
-                    final double cardWidth = isSingle
-    ? constraints.maxWidth
-    : constraints.maxWidth - 8;
                     return ListView.separated(
   scrollDirection: Axis.horizontal,
   physics: isSingle
@@ -276,10 +273,6 @@ class _BookingListScreenState extends State<BookingListScreen> with TickerProvid
                       DateTime dt = booking.daDate!;
 
                       final formattedDate = loginProvider.formatHistoryDate(dt);
-                      final formattedTime = loginProvider.formatTime(
-                        dt,
-                        context,
-                      );
                       final package = packagesProvider.getPackageByCode(
                         booking.daPackagetypevalue,
                       )!;

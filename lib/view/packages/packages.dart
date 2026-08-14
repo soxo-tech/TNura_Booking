@@ -457,6 +457,7 @@ class _PackagesState extends State<Packages> with TickerProviderStateMixin {
               final prefs = await SharedPreferencesService.prefs;
               final selectedIndex = prefs.getInt('selected_branch_index') ?? 0;
 
+              if (!mounted) return;
               await packageProvider.handleBranchSelection(
                 context,
                 selectedIndex,
@@ -668,6 +669,7 @@ class _PackagesState extends State<Packages> with TickerProviderStateMixin {
                               final selectedIndex =
                                   prefs.getInt('selected_branch_index') ?? 0;
 
+                              if (!mounted) return;
                               await provider.handleBranchSelection(
                                 context,
                                 selectedIndex,
