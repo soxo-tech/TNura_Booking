@@ -260,6 +260,15 @@ class _BookingListScreenState extends State<BookingListScreen> with TickerProvid
                     // scrolling; otherwise the cards keep the peeking layout so
                     // adjacent cards hint at horizontal scroll.
                     final bool isSingle = validResults.length == 1;
+
+                    // A lone card fills the space it was given — there is
+                    // nothing to scroll to, so leaving a 15% gap on the right
+                    // just reads as a layout mistake. With more than one, the
+                    // cards stay narrower than the viewport so the next one
+                    // peeks in and advertises the horizontal scroll.
+                    final double cardWidth = isSingle
+                        ? constraints.maxWidth
+                        : MediaQuery.of(context).size.width * 0.85;
                     return ListView.separated(
   scrollDirection: Axis.horizontal,
   physics: isSingle
@@ -327,9 +336,8 @@ class _BookingListScreenState extends State<BookingListScreen> with TickerProvid
                             ),
                           );
                         },
-                        child: IntrinsicWidth(
-                          child: Container(
-                            width: MediaQuery.of(context).size.width * 0.85,
+                        child: Container(
+                            width: cardWidth,
                             padding: EdgeInsets.fromLTRB(12, 12, 12, 0),
                             decoration: BoxDecoration(
                               color: AppColors.white,
@@ -439,7 +447,6 @@ class _BookingListScreenState extends State<BookingListScreen> with TickerProvid
                               ],
                             ),
                           ),
-                        ),
                       );
                     },
                     );
