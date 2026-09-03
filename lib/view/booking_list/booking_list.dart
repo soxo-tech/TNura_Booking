@@ -42,17 +42,29 @@ class BookingListScreen extends StatefulWidget {
   /// responds.
   final bool embedded;
 
+  /// Left/right margin this section keeps from the host's screen edges.
+  ///
+  /// The screen applies this itself rather than being wrapped in a [Padding]
+  /// by the host, because the appointment strip has to drop the *right*
+  /// margin once there is more than one card: the next card must run to the
+  /// screen edge for the peek to read as "scroll me" rather than as a card
+  /// that got cut off. A host that wraps this widget in its own padding
+  /// re-introduces that gap, so pass the margin here instead of wrapping.
+  final double horizontalPadding;
+
   const BookingListScreen({
     super.key,
     this.isFromTab = true,
     this.embedded = false,
+    this.horizontalPadding = 0,
   });
 
   @override
   State<BookingListScreen> createState() => _BookingListScreenState();
 }
 
-class _BookingListScreenState extends State<BookingListScreen> with TickerProviderStateMixin {
+class _BookingListScreenState extends State<BookingListScreen>
+    with TickerProviderStateMixin {
   double opacity = 1;
   double scale = 1;
   late AnimationController _controller;
@@ -151,58 +163,62 @@ class _BookingListScreenState extends State<BookingListScreen> with TickerProvid
     final loginProvider = Provider.of<LoginProvider>(context);
 
     final content = Consumer<LoginProvider>(
-        builder: (context, provider, child) {
-          final results = provider.bookinghistoryModel?.result;
-          if (provider.isBookingLoading ||
-              packagesProvider.isPackagesListLoading ||
-              packagesProvider.packagesList.isEmpty) {
-            return SizedBox(); // or shimmer
-          }
+      builder: (context, provider, child) {
+        final results = provider.bookinghistoryModel?.result;
+        if (provider.isBookingLoading ||
+            packagesProvider.isPackagesListLoading ||
+            packagesProvider.packagesList.isEmpty) {
+          return SizedBox(); // or shimmer
+        }
 
-          // FAILED OR NULL RESPONSE
-          if (provider.isBookingFailed || results == null) {
-            return SizedBox(); // DO NOT SHOW APPOINTMENTS
-          }
+        // FAILED OR NULL RESPONSE
+        if (provider.isBookingFailed || results == null) {
+          return SizedBox(); // DO NOT SHOW APPOINTMENTS
+        }
 
-          // EMPTY LIST
-          if (results.isEmpty) {
-            return SizedBox(); // DO NOT SHOW APPOINTMENTS
-          }
+        // EMPTY LIST
+        if (results.isEmpty) {
+          return SizedBox(); // DO NOT SHOW APPOINTMENTS
+        }
 
-          // Only bookings with a date and a resolvable package actually render
-          // as a card below; filter here so the count badge and the
-          // scrollable list agree on how many appointments there are.
-          final validResults = results
-              .where(
-                (booking) =>
-                    booking.daDate != null &&
-                    packagesProvider.getPackageByCode(
-                          booking.daPackagetypevalue,
-                        ) !=
-                        null,
-              )
-              .toList();
+        // Only bookings with a date and a resolvable package actually render
+        // as a card below; filter here so the count badge and the
+        // scrollable list agree on how many appointments there are.
+        final validResults = results
+            .where(
+              (booking) =>
+                  booking.daDate != null &&
+                  packagesProvider.getPackageByCode(
+                        booking.daPackagetypevalue,
+                      ) !=
+                      null,
+            )
+            .toList();
 
-          if (validResults.isEmpty) {
-            return SizedBox();
-          }
+        if (validResults.isEmpty) {
+          return SizedBox();
+        }
 
-          // VALID DATA
-          return Column(
-            // Size to content so the screen can be embedded as an inline item
-            // (e.g. a host's home ListView) without an unbounded-height error.
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              setHeight(17),
-              Row(
+        // VALID DATA
+        return Column(
+          // Size to content so the screen can be embedded as an inline item
+          // (e.g. a host's home ListView) without an unbounded-height error.
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            setHeight(17),
+            Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: widget.horizontalPadding,
+              ),
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: [
                       RefractedText(
-                        text: 'Your appointments',
+                        text: 'Your Appointments',
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
                         textColor: AppColors.bottomTabColor,
@@ -233,9 +249,10 @@ class _BookingListScreenState extends State<BookingListScreen> with TickerProvid
                             Navigator.push(
                               context,
                               PageRouteBuilder(
-                                pageBuilder: (_, _, _) =>
-                                    _withModuleProviders(
-                                        context, AppointmentHistory()),
+                                pageBuilder: (_, _, _) => _withModuleProviders(
+                                  context,
+                                  AppointmentHistory(),
+                                ),
                                 transitionDuration: Duration.zero,
                               ),
                             );
@@ -249,94 +266,110 @@ class _BookingListScreenState extends State<BookingListScreen> with TickerProvid
                         ),
                 ],
               ),
-              setHeight(12),
-              SizedBox(
-                height: 90,
-                child: ScaleTransition(
-                  scale: _scaleAnim,
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
+            ),
+            setHeight(12),
+            SizedBox(
+              height: 90,
+              child: ScaleTransition(
+                scale: _scaleAnim,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
                     // When there's only a single booking the list stops
                     // scrolling; otherwise the cards keep the peeking layout so
                     // adjacent cards hint at horizontal scroll.
                     final bool isSingle = validResults.length == 1;
 
-                    // A lone card fills the space it was given — there is
-                    // nothing to scroll to, so leaving a 15% gap on the right
-                    // just reads as a layout mistake. With more than one, the
-                    // cards stay narrower than the viewport so the next one
-                    // peeks in and advertises the horizontal scroll.
+                    // A lone card is the whole section, so it keeps the margin
+                    // on both sides like any other card on the page. Once the
+                    // strip scrolls, the right margin goes: the peeking card
+                    // has to run off the screen edge, otherwise it reads as a
+                    // card that was cut short rather than as more to come.
+                    final double leftPadding = widget.horizontalPadding;
+                    final double rightPadding = isSingle
+                        ? widget.horizontalPadding
+                        : 0;
+
+                    // constraints.maxWidth is the full screen width now that
+                    // the host no longer pads this section, so the lone card
+                    // has to subtract the margins it is about to be given.
                     final double cardWidth = isSingle
-                        ? constraints.maxWidth
-                        : MediaQuery.of(context).size.width * 0.85;
+                        ? constraints.maxWidth - leftPadding - rightPadding
+                        : MediaQuery.of(context).size.width * 0.87;
                     return ListView.separated(
-  scrollDirection: Axis.horizontal,
-  physics: isSingle
-      ? const NeverScrollableScrollPhysics()
-      : const BouncingScrollPhysics(),
-  padding: EdgeInsets.zero, // No padding at start/end
-  itemCount: validResults.length,
-  separatorBuilder: (_, _) => const SizedBox(width: 15),
-  itemBuilder: (context, index) {
-                      final booking = validResults[index];
-                      DateTime dt = booking.daDate!;
+                      scrollDirection: Axis.horizontal,
+                      physics: isSingle
+                          ? const NeverScrollableScrollPhysics()
+                          : const BouncingScrollPhysics(),
+                      padding: EdgeInsets.only(
+                        left: leftPadding,
+                        right: rightPadding,
+                      ),
+                      itemCount: validResults.length,
+                      separatorBuilder: (_, _) => const SizedBox(width: 10),
+                      itemBuilder: (context, index) {
+                        final booking = validResults[index];
+                        DateTime dt = booking.daDate!;
 
-                      final formattedDate = loginProvider.formatHistoryDate(dt);
-                      final package = packagesProvider.getPackageByCode(
-                        booking.daPackagetypevalue,
-                      )!;
+                        final formattedDate = loginProvider.formatHistoryDate(
+                          dt,
+                        );
+                        final package = packagesProvider.getPackageByCode(
+                          booking.daPackagetypevalue,
+                        )!;
 
-                      final packageName =
-                          booking.packageDetails?.description ?? 'N/A';
-                      final packageDrId = booking.packageDetails?.slotDoctorPtr;
+                        final packageName =
+                            booking.packageDetails?.description ?? 'N/A';
+                        final packageDrId =
+                            booking.packageDetails?.slotDoctorPtr;
 
-                      Map<String, dynamic> extraData = {};
-                      try {
-                        extraData = jsonDecode(package.itmOtherdet3 ?? '{}');
-                      } catch (e) {
-                        extraData = {};
-                      }
-                      final packageImage = booking.packageDetails?.image ?? "";
+                        Map<String, dynamic> extraData = {};
+                        try {
+                          extraData = jsonDecode(package.itmOtherdet3 ?? '{}');
+                        } catch (e) {
+                          extraData = {};
+                        }
+                        final packageImage =
+                            booking.packageDetails?.image ?? "";
 
-                      final hasValidImage =
-                          packageImage != null &&
-                          packageImage.toString().isNotEmpty;
-                      final String? packageBackground =
-                          extraData['background_gradient'];
-                      return GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            PageRouteBuilder(
-                              transitionDuration: Duration(milliseconds: 400),
-                              pageBuilder: (_, _, _) => _withModuleProviders(
-                                context,
-                                AppointmentDetail(
-                                  addonPackageList:
-                                      booking.addOnPackageDetails,
-                                  bookingId: booking.daId,
-                                  packageName: packageName,
-                                  packageImage: packageImage,
-                                  packageBackground: packageBackground,
-                                  packageDrId: packageDrId,
-                                ),
-                              ),
-                              transitionsBuilder: (_, animation, _, child) {
-                                return FadeTransition(
-                                  opacity: animation,
-                                  child: ScaleTransition(
-                                    scale: Tween(
-                                      begin: 0.95,
-                                      end: 1.0,
-                                    ).animate(animation),
-                                    child: child,
+                        final hasValidImage =
+                            packageImage != null &&
+                            packageImage.toString().isNotEmpty;
+                        final String? packageBackground =
+                            extraData['background_gradient'];
+                        return GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              PageRouteBuilder(
+                                transitionDuration: Duration(milliseconds: 400),
+                                pageBuilder: (_, _, _) => _withModuleProviders(
+                                  context,
+                                  AppointmentDetail(
+                                    addonPackageList:
+                                        booking.addOnPackageDetails,
+                                    bookingId: booking.daId,
+                                    packageName: packageName,
+                                    packageImage: packageImage,
+                                    packageBackground: packageBackground,
+                                    packageDrId: packageDrId,
                                   ),
-                                );
-                              },
-                            ),
-                          );
-                        },
-                        child: Container(
+                                ),
+                                transitionsBuilder: (_, animation, _, child) {
+                                  return FadeTransition(
+                                    opacity: animation,
+                                    child: ScaleTransition(
+                                      scale: Tween(
+                                        begin: 0.95,
+                                        end: 1.0,
+                                      ).animate(animation),
+                                      child: child,
+                                    ),
+                                  );
+                                },
+                              ),
+                            );
+                          },
+                          child: Container(
                             width: cardWidth,
                             padding: EdgeInsets.fromLTRB(12, 12, 12, 0),
                             decoration: BoxDecoration(
@@ -378,18 +411,24 @@ class _BookingListScreenState extends State<BookingListScreen> with TickerProvid
                                               child: SizedBox(
                                                 width: 20,
                                                 height: 20,
-                                                child: CircularProgressIndicator(
-                                                  strokeWidth: 2,
-                                                  color: Colors.white.withValues(
-                                                    alpha: 0.5,
-                                                  ),
-                                                ),
+                                                child:
+                                                    CircularProgressIndicator(
+                                                      strokeWidth: 2,
+                                                      color: Colors.white
+                                                          .withValues(
+                                                            alpha: 0.5,
+                                                          ),
+                                                    ),
                                               ),
                                             ),
-                                            errorWidget: (context, url, error) =>
-                                                Icon(Icons.image, size: 30),
+                                            errorWidget:
+                                                (context, url, error) =>
+                                                    Icon(Icons.image, size: 30),
                                           )
-                                        : Icon(Icons.image, size: 30), // fallback
+                                        : Icon(
+                                            Icons.image,
+                                            size: 30,
+                                          ), // fallback
                                   ),
                                 ),
                                 SizedBox(width: 12),
@@ -399,7 +438,9 @@ class _BookingListScreenState extends State<BookingListScreen> with TickerProvid
                                     Row(
                                       children: [
                                         SvgPicture.asset(
-                                          bookingAssetPath('assets/svg/img_guest.svg'),
+                                          bookingAssetPath(
+                                            'assets/svg/img_guest.svg',
+                                          ),
                                           height: 10,
                                           width: 10,
                                           color: const Color.fromRGBO(
@@ -415,7 +456,8 @@ class _BookingListScreenState extends State<BookingListScreen> with TickerProvid
                                               '${booking.daFname} ${booking.daLname}',
                                           fontSize: 12,
                                           fontWeight: FontWeight.w600,
-                                          textColor: AppColors.packageTextPrimary,
+                                          textColor:
+                                              AppColors.packageTextPrimary,
                                         ),
                                       ],
                                     ),
@@ -432,13 +474,15 @@ class _BookingListScreenState extends State<BookingListScreen> with TickerProvid
                                           text: formattedDate,
                                           fontSize: 14,
                                           fontWeight: FontWeight.w500,
-                                          textColor: AppColors.packageTextPrimary,
+                                          textColor:
+                                              AppColors.packageTextPrimary,
                                         ),
                                         RefractedText(
                                           text: ', ${booking.daAptime}',
                                           fontSize: 14,
                                           fontWeight: FontWeight.w500,
-                                          textColor: AppColors.packageTextPrimary,
+                                          textColor:
+                                              AppColors.packageTextPrimary,
                                         ),
                                       ],
                                     ),
@@ -447,18 +491,18 @@ class _BookingListScreenState extends State<BookingListScreen> with TickerProvid
                               ],
                             ),
                           ),
-                      );
-                    },
+                        );
+                      },
                     );
-                    },
-                  ),
+                  },
                 ),
               ),
-              setHeight(3),
-            ],
-          );
-        },
-      );
+            ),
+            setHeight(3),
+          ],
+        );
+      },
+    );
 
     // Inline (host home) mounts have no Scaffold so they collapse to zero
     // height and size to content; full-page mounts keep the Scaffold.

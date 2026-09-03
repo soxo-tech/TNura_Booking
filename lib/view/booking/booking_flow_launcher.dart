@@ -74,6 +74,14 @@ class BookingFlowLauncher  extends StatefulWidget {
   /// down by a spinner — the booking content simply appears once it loads.
   final bool embedded;
 
+  /// Left/right margin the inline booking list keeps from the screen edges.
+  ///
+  /// Pass the host's own page margin here instead of wrapping this widget in
+  /// a [Padding]: the appointment strip drops the right margin when the cards
+  /// scroll, so the peeking card can reach the screen edge. See
+  /// [BookingListScreen.horizontalPadding].
+  final double horizontalPadding;
+
   /// Called after a slot is successfully blocked while the user is not
   /// authenticated. The host can use this to redirect away from the booking
   /// flow (e.g. to a login screen or the home tab).
@@ -107,6 +115,7 @@ class BookingFlowLauncher  extends StatefulWidget {
     this.clientSecret,
     this.env,
     this.embedded = false,
+    this.horizontalPadding = 0,
     this.onUnauthorizedSlotBlocked,
     this.onUnauthorized,
   });
@@ -221,7 +230,10 @@ class _BookingFlowLauncherState extends State<BookingFlowLauncher> {
       case BookingDestination.packages:
         return const Packages();
       case BookingDestination.bookingList:
-        return BookingListScreen(embedded: widget.embedded);
+        return BookingListScreen(
+          embedded: widget.embedded,
+          horizontalPadding: widget.horizontalPadding,
+        );
       case BookingDestination.appointmentHistory:
         return const AppointmentHistory();
     }
