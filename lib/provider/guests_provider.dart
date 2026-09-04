@@ -2,7 +2,6 @@
 
 import 'dart:async';
 import 'dart:convert';
-import 'dart:developer';
 import 'dart:io';
 import 'package:booking/core/colors.dart';
 import 'package:booking/core/constants.dart';
@@ -253,7 +252,6 @@ class GuestProvider extends ChangeNotifier {
     final pref = await SharedPreferencesService.prefs;
     final razorpayKey = pref.getString(kRazorpayKey);
     if (razorpayKey == null || razorpayKey.isEmpty) {
-      debugPrint(" Razorpay key not found in SharedPreferences!");
       return;
     }
     var options = {
@@ -269,8 +267,8 @@ class GuestProvider extends ChangeNotifier {
     };
     try {
       _razorpay?.open(options);
-    } catch (e) {
-      debugPrint('Razorpay Error: $e');
+    } catch (_) {
+      // Nothing to recover here: this failure was only ever logged.
     }
   }
 
@@ -382,7 +380,6 @@ class GuestProvider extends ChangeNotifier {
     BuildContext context,
     int index,
   ) async {
-    log('paymentid: $paymentId');
     try {
       final res = await secureFetch(
         method: 'GET',
@@ -393,7 +390,6 @@ class GuestProvider extends ChangeNotifier {
       
 
       final data = res.data;
-      log('Payment status response: $data');
       if (data == null || data['status'] != 200 || data['success'] != true) {
         _setPaymentProcessing(false);
         _toast(context, data?['message'] ?? 'Failed to fetch payment status');
@@ -439,8 +435,7 @@ class GuestProvider extends ChangeNotifier {
         ...appointmentDetails,
         "appointments": appointments,
       };
-    } catch (e, st) {
-      debugPrint('getPaymentStatus → $e\n$st');
+    } catch (e) {
       _toast(context, 'Network error — please try again.');
       return null;
     }
@@ -464,7 +459,6 @@ class GuestProvider extends ChangeNotifier {
      
 
       final data = res.data;
-      log('Add-on tests response: $data');
       if (data == null ||
           data['statusCode'] != 200 ||
           data['success'] != true) {
@@ -505,7 +499,6 @@ class GuestProvider extends ChangeNotifier {
       "applicable_on": "APP",
     };
 
-    log('Coupon Payload: ${jsonEncode(data)}');
 
     try {
       var response = await secureFetch(
@@ -515,7 +508,6 @@ class GuestProvider extends ChangeNotifier {
         dbPtr: branchDbptr,
       );
 
-      log('Coupon Response: ${jsonEncode(response.data)}');
 
       if ((response.data['status_code'] == 200 ||
               response.data['status_code'] == 201) &&
@@ -545,7 +537,6 @@ class GuestProvider extends ChangeNotifier {
       "applicable_on": "APP",
     };
 
-    log('Coupon Payload: ${jsonEncode(data)}');
 
     try {
       var response = await secureFetch(
@@ -555,7 +546,6 @@ class GuestProvider extends ChangeNotifier {
         dbPtr: branchDbptr,
       );
 
-      log('Coupon Response: ${jsonEncode(response.data)}');
 
       if ((response.status == 200 || response.status == 201) &&
           response.data['success'] == true) {
@@ -564,8 +554,6 @@ class GuestProvider extends ChangeNotifier {
         couponValue = data['coupon_value'] ?? 0;
         couponType = data['value_type'] ?? "A";
 
-        log('Coupon Value: $couponValue');
-        log('Coupon Type: $couponType');
 
         notifyListeners();
         return true;
@@ -574,7 +562,6 @@ class GuestProvider extends ChangeNotifier {
         return false;
       }
     } catch (e) {
-      log("Coupon Error: $e");
       showSnackBar(context, "Something went wrong. Try again.");
       return false;
     }
@@ -638,15 +625,12 @@ class GuestProvider extends ChangeNotifier {
   }
 
   void _onPaymentSuccess(PaymentSuccessResponse rsp) async {
-    log("####### CALLBACK RECEIVED FROM RAZORPAY #######");
-    log('########### Payment ID: ${rsp.paymentId}');
 
     _setPaymentProcessing(false);
     _setFetchingPaymentDetails(true);
 
     final nav = _paymentNavigator ?? navigatorKey.currentState;
     if (nav == null) {
-      log("❌ No navigator available to handle payment success");
       _setFetchingPaymentDetails(false);
       return;
     }
@@ -720,7 +704,6 @@ class GuestProvider extends ChangeNotifier {
     const delaySeconds = 2;
 
     for (int attempt = 1; attempt <= maxRetries; attempt++) {
-      log("🔁 Checking appointment_id (Attempt $attempt)");
 
       try {
         final res = await secureFetch(
@@ -745,21 +728,18 @@ class GuestProvider extends ChangeNotifier {
                 .toList();
 
             if (ids.isNotEmpty) {
-              log("✅ appointment_id received: $ids");
               return ids;
             }
           }
         }
 
-        log("⏳ appointment_id not ready yet...");
-      } catch (e) {
-        log("❌ Polling error: $e");
+      } catch (_) {
+        // Nothing to recover here: this failure was only ever logged.
       }
 
       await Future.delayed(const Duration(seconds: delaySeconds));
     }
 
-    log("❌ appointment_id not received after retries");
     return null;
   }
   void _handlePaymentError(
@@ -970,8 +950,8 @@ class GuestProvider extends ChangeNotifier {
         guest.selectedGender =
             (gender == 'm' || gender == 'male') ? 'Male' : 'Female';
       }
-    } catch (e) {
-      debugPrint('Error in initializeGuest: $e');
+    } catch (_) {
+      // Nothing to recover here: this failure was only ever logged.
     } finally {
       isMembersLoading = false;
       notifyListeners();
@@ -1012,7 +992,6 @@ class GuestProvider extends ChangeNotifier {
             (today.month == dob.month && today.day < dob.day)) {
           age--;
         }
-        log("daDob from booking:  ${booking.daDob}");
         guest.ageController.text = age.toString();
       }
     } */
@@ -1078,7 +1057,6 @@ class GuestProvider extends ChangeNotifier {
     setBillingOtpLoading = false;
 
     if (response != null && response["success"] == true) {
-      log('billingUser Verify: $response');
 
       isBillingVerified = true;
       isBillingUserOtpSent = false;
@@ -1133,7 +1111,6 @@ class GuestProvider extends ChangeNotifier {
     }
 
     await slotBlocking(index, context);
-    log("Selection Complete: Date = ${guest.selectedDate}, Slot = ${guest.selectedSlot}");
 
     /// Refresh slots for other guests (except current index)
     await Future.wait([
@@ -1340,7 +1317,6 @@ class GuestProvider extends ChangeNotifier {
           "mobile_verified": false,
         },
       };
-      log('SaveOrder Payload: ${jsonEncode(data)}');
       final prefs = await SharedPreferencesService.prefs;
       String? branchDbptr = prefs.getString(kSelectedBranchDbptr);
 
@@ -1352,15 +1328,12 @@ class GuestProvider extends ChangeNotifier {
       );
 
       if (response.data != null) {
-        log('SaveOrder Response: ${jsonEncode(response.data)}');
 
         return true;
       } else {
-        log('Failed to add Order');
         return false;
       }
     } catch (e) {
-      log('Error during Save Order: $e');
       return false;
     }
   }
@@ -1410,7 +1383,6 @@ class GuestProvider extends ChangeNotifier {
           "mobile_verified": false,
         },
       };
-      log('SaveOrder Payload: ${jsonEncode(data)}');
       final prefs = await SharedPreferencesService.prefs;
       String? branchDbptr = prefs.getString(kSelectedBranchDbptr);
       var response = await secureFetch(
@@ -1421,15 +1393,12 @@ class GuestProvider extends ChangeNotifier {
       );
 
       if (response.data != null) {
-        log('SaveOrder Response: ${jsonEncode(response.data)}');
 
         return true;
       } else {
-        log('Failed to add Order');
         return false;
       }
     } catch (e) {
-      log('Error during Save Order: $e');
       return false;
     }
   }
@@ -1471,7 +1440,6 @@ class GuestProvider extends ChangeNotifier {
       "otherDetails": {"latitude": lat, "longitude": long},
     };
 
-    log('Add guest Payload: ${jsonEncode(data)}');
     String? branchDbptr = pref.getString(kSelectedBranchDbptr);
 
     var response = await secureFetch(
@@ -1482,7 +1450,6 @@ class GuestProvider extends ChangeNotifier {
     );
 
     if (response.data != null) {
-      log('📥 Response: ${jsonEncode(response.data)}');
       final success = response.data['success'] == true;
       final message = response.data['message'] ?? "Something went wrong.";
 
@@ -1529,7 +1496,6 @@ class GuestProvider extends ChangeNotifier {
         },
       };
 
-      log('Update guest Payload: $data');
       String? branchDbptr = pref.getString(kSelectedBranchDbptr);
 
       var response = await secureFetch(
@@ -1540,8 +1506,6 @@ class GuestProvider extends ChangeNotifier {
       );
 
       if (response.data != null) {
-        log('Update Guest Payload: ${jsonEncode(data)}');
-        log('Update Guest Response: ${response.data}');
 
         bool success = response.data["success"] ?? false;
         String message = response.data["message"] ?? "Unknown error";
@@ -1557,7 +1521,6 @@ class GuestProvider extends ChangeNotifier {
         };
       }
     } catch (e) {
-      log('Error during add guest: $e');
       return {
         "success": false,
         "message": "An unexpected error occurred",
@@ -1600,20 +1563,15 @@ class GuestProvider extends ChangeNotifier {
       dbPtr: branchDbptr,
     );
 
-    log('slotBlocking response statusCode: ${response.data?['statusCode']}, '
-        'isLoggedIn: $isLoggedIn, otpVerified: ${guest.otpVerified}, '
-        'hasUnauthorizedCallback: ${onUnauthorizedSlotBlocked != null}');
     if (response.data != null && response.data['statusCode'] == 200) {
       if (isLoggedIn) {
         // 3. APP-LOGGED-IN FLOW: Move directly to Confirmation
         guest.step = GuestStep.confirmation;
         showConfirmAppointmentDetails = true;
-        log('User Authorized (Logged In: $isLoggedIn, OTP: ${guest.otpVerified})');
       } else {
         // 4. NOT APP-LOGGED-IN FLOW: Let the host decide where to send the
         // user (e.g. back to the home tab or to a login screen). OTP-only
         // verification still counts as not logged in for the host app.
-        log('slotBlocking firing onUnauthorizedSlotBlocked callback');
         onUnauthorizedSlotBlocked?.call();
       }
 
@@ -1621,11 +1579,9 @@ class GuestProvider extends ChangeNotifier {
         startAppointmentTimer();
       }
 
-      log('Slot Blocked Successfully');
       setSlotsLoading(index, false);
       notifyListeners();
     } else {
-      log('Failed to Block');
       setSlotsLoading(index, false);
     }
   }
@@ -1638,15 +1594,11 @@ class GuestProvider extends ChangeNotifier {
     bool loggedInFlag,
   ) async {
     final pref = await SharedPreferencesService.prefs;
-    log('InitiatePaymentV2 called');
     final brchPtr = pref.getString(branchptr);
     final frmptr = pref.getString(firmptr);
     String? branchDbptr = pref.getString(kSelectedBranchDbptr);
     final deviceId = pref.getString(kDeviceId) ?? "";
-    log('Firmid: $frmptr, Branchid: $brchPtr');
     final razorpayKey = pref.getString('razorpay_key');
-    log('Razorpay Key: $razorpayKey');
-    log('Device ID: $deviceId');
     if (razorpayKey == null || razorpayKey.isEmpty) return;
     // show overlay before preparing payment
     _setPaymentProcessing(true);
@@ -1699,8 +1651,6 @@ class GuestProvider extends ChangeNotifier {
         },
     };
 
-    log('Payload: ${jsonEncode(data)}');
-    log('Original Session ID: $sessionId');
     try {
       // Call API to initiate order
       var response = await secureFetch(
@@ -1709,18 +1659,13 @@ class GuestProvider extends ChangeNotifier {
         body: jsonEncode(data),
         dbPtr: branchDbptr,
       );
-     log('Response Status Code: ${response.status}');
-      log('Response Data: ${jsonEncode(response.data)}');
       if ((response.status == 200 || response.status == 201) &&
           response.data['success'] == true) {
         paymentv2Id = response.data['data'];
-        log('paymentV2 Id from initiate payment: $paymentId');
         // Hide loader before opening Razorpay
 
-        log('Initiate PaymentV2 Response: ${jsonEncode(response.data)}');
         _currentGuestIndex = index;
         await initiatePayment(context, paymentv2Id);
-        log('Initiated Payment Successfully');
       } else {
         _setPaymentProcessing(false);
         showSnackBar(
@@ -1730,7 +1675,6 @@ class GuestProvider extends ChangeNotifier {
       }
     } catch (e) {
       _setPaymentProcessing(false);
-      log('Error initiating paymentV2: $e');
 
       showSnackBar(context, "Something went wrong. Try again.");
     }
@@ -1768,29 +1712,22 @@ class GuestProvider extends ChangeNotifier {
           },
         ),
       );
-      log('Response Status Code: ${response?.statusCode}');
-      log('Initiate order payload: ${jsonEncode(data)}');
-      log('Response Data: ${jsonEncode(response?.data)}');
       if ((response?.statusCode == 200 || response?.statusCode == 201) &&
           response?.data['success'] == true) {
         paymentId = response?.data['data']['id'];
-        log('Order Id from initiate payment: $paymentId');
         // Hide loader before opening Razorpay
         _setPaymentProcessing(false);
-        log('Initiate Payment Response: ${jsonEncode(response?.data)}');
         openCheckout(
           name: billingUserNameController.text,
           amount: totalAmount,
           orderId: paymentId,
         );
-        log('Initiated Payment Successfully');
       } else {
         _setPaymentProcessing(false);
         showSnackBar(context, "Failed to initiate payment. Try again.");
       }
     } catch (e) {
       _setPaymentProcessing(false);
-      log('Error initiating payment: $e');
 
       showSnackBar(context, "Something went wrong. Try again.");
     }
@@ -1819,7 +1756,6 @@ class GuestProvider extends ChangeNotifier {
       final code = response.data?['status'] ?? response.data?['statusCode'];
 
       if (code == 200 && response.data?['success'] == true) {
-        log('Appointment Detail response: ${response.data}');
         return response.data;
       }
 
@@ -1827,8 +1763,7 @@ class GuestProvider extends ChangeNotifier {
         context,
         response.data?['message'] ?? 'Something went wrong. Please try again.',
       );
-    } catch (e, st) {
-      log('fetchAppointmentDetails → $e\n$st');
+    } catch (e) {
       showSnackBar(context, 'Network error — please try again.');
     }
 
@@ -1876,13 +1811,11 @@ class GuestProvider extends ChangeNotifier {
       final file = File('${targetDir.path}/$fileName');
       await file.writeAsBytes(pdfBytes, flush: true);
 
-      debugPrint('PDF saved at → ${file.path}');
 
       /* 4. Fire it up */
       final result = await OpenFilex.open(file.path);
       return result.type == ResultType.done;
-    } catch (e, s) {
-      debugPrint('downloadAndOpenPdf failed → $e\n$s');
+    } catch (e) {
       return false;
     }
   }
@@ -2018,7 +1951,6 @@ class GuestProvider extends ChangeNotifier {
     } else {
       // If we already have guests, we target the first one (primary user)
       // and clear any previous selection to avoid stale data
-      log("Reusing existing guest object to prevent duplicates.");
     }
 
     final guest = guests[0];
@@ -2096,7 +2028,6 @@ class GuestProvider extends ChangeNotifier {
     // 4. Reset other internal flags that might interfere
     isCouponApplied = false;
 
-    log("DEBUG: Editing from Confirmation. Flag set to false. Step set to Scheduling.");
     guests[0].otpVerified = true;
 
     notifyListeners();
@@ -2276,8 +2207,8 @@ class GuestProvider extends ChangeNotifier {
           await initiatePaymentV2(context, 0, loggedInFlag);
           break;
       }
-    } catch (e) {
-      debugPrint("Error in handleContinue: $e");
+    } catch (_) {
+      // Nothing to recover here: this failure was only ever logged.
     } finally {
       isBillingLoading = false;
       notifyListeners();
@@ -2330,7 +2261,6 @@ class GuestProvider extends ChangeNotifier {
         return false;
       }
     } catch (e) {
-      debugPrint("Reschedule error: $e");
       showSnackBar(context, 'Something went wrong');
       return false;
     }
@@ -2487,12 +2417,9 @@ class GuestProvider extends ChangeNotifier {
         body: jsonEncode(data),
         // dbPtr: branchDbptr,
       );
-      log('Generate Otp Payload: ${jsonEncode(data)}');
-      log('Generate OTP: $response');
 // Return response data if successful
       return response.data;
     } catch (e) {
-      log("Error sending OTP: $e");
       // Return null if an error occurs
       return null;
     }
@@ -2764,7 +2691,6 @@ class GuestProvider extends ChangeNotifier {
       guest.otpVerified = true;
       guest.isOtpError = false;
       notifyListeners(); // Show green success state
-      log('Verify OTP: ${guest.otpVerified}');
       await Future.delayed(Duration(seconds: 2));
 
       // THIS IS THE FIX:
@@ -2772,7 +2698,6 @@ class GuestProvider extends ChangeNotifier {
       guest.step = GuestStep.confirmation;
 
       notifyListeners();
-      log('Verify Otp From Guests: $response');
     } else {
       guest.otpVerified = false;
       guest.isOtpError = true;
@@ -2796,7 +2721,6 @@ class GuestProvider extends ChangeNotifier {
       "name": name,
     };
 
-    log("OTP Verification Request: $data");
     await SharedPreferencesService.prefs;
     try {
       final response = await secureFetch(
@@ -2805,10 +2729,8 @@ class GuestProvider extends ChangeNotifier {
         body: jsonEncode(data),
         // dbPtr: branchDbptr
       );
-      log('Otp Verification response: ${response.data}');
       return response.data;
     } catch (e) {
-      log("Error verifying OTP: $e");
       return null;
     }
   }
@@ -2861,9 +2783,7 @@ class GuestProvider extends ChangeNotifier {
   Future<void> ensureGuestToken() async {
     final accessToken = ApiService.authToken;
     if (accessToken == null || accessToken.isEmpty) {
-      log('No access token found → logging in as guest...');
     } else {
-      log('Guest token already exists.');
     }
   }
 
@@ -2916,7 +2836,6 @@ class GuestProvider extends ChangeNotifier {
         );
       } on FormatException {
         // still safe‑guard
-        debugPrint('Bad time from API: $rawStart');
         continue;
       }
 
@@ -2942,10 +2861,8 @@ class GuestProvider extends ChangeNotifier {
     final pref = await SharedPreferencesService.prefs;
     final guest = guests[index];
 
-    log('Checking Slot Prerequisites: DoctorID: ${guest.selectedDoctorId}, Date: ${guest.selectedDate}');
 
     if (guest.selectedDoctorId == null) {
-      log('Error: Doctor ID is null. Cannot fetch slots.');
       return; // Exit early if we don't have a doctor ID yet
     }
     String? branchDbptr = pref.getString(kSelectedBranchDbptr);
@@ -2954,7 +2871,6 @@ class GuestProvider extends ChangeNotifier {
       return;
     }
 
-    log('Fetching branches with Dbptr: $branchDbptr');
 
     isAvailableSlotsLoading = true;
     notifyListeners();
@@ -2965,8 +2881,6 @@ class GuestProvider extends ChangeNotifier {
         endDate: selectedDateForSlot(guest.selectedDate),
       );
 
-     log('Slot URL: $slotUrl');
-      log('Token: ${pref.getString('token')}');
 
       final response = await secureFetch(
         method: 'GET',
@@ -2974,7 +2888,6 @@ class GuestProvider extends ChangeNotifier {
         dbPtr: branchDbptr,
       );
       var json = response.data;
-      log('Slots Json: $json');
       if (json != null) {
         if (json['status_code'] != 200) {
           availableSlots = [];
@@ -2989,8 +2902,7 @@ class GuestProvider extends ChangeNotifier {
           processAvailableSlots(json['data'], guest);
         }
       }
-    } catch (e, st) {
-      log("Error fetching slots: $e\n$st");
+    } catch (e) {
       availableSlots = [];
     } finally {
       isAvailableSlotsLoading = false;
