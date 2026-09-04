@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:developer';
 
 import 'package:booking/core/constants.dart';
 import 'package:booking/main.dart';
@@ -75,7 +74,6 @@ class PackagesProvider extends ChangeNotifier {
       dbPtr: country == 'Mongolia' ? 'nuramho' : null,
     ).then((response) {
       var json = response.data;
-      log(json.toString());
       branches = BranchesModel.fromJson(json).result ?? [];
       notifyListeners();
     });
@@ -176,10 +174,7 @@ class PackagesProvider extends ChangeNotifier {
       return;
     }
 
-    log(selectedCountry ?? "", name: "test");
-    log(selectedBranch ?? "", name: "test");
 
-    log('Fetching branches with Dbptr: $dbptr');
 
     try {
       final response = await secureFetch(
@@ -233,8 +228,8 @@ class PackagesProvider extends ChangeNotifier {
         // Notify UI about branch list update
         notifyListeners();
       }
-    } catch (e) {
-      log('Error fetching branches: $e');
+    } catch (_) {
+      // Nothing to recover here: this failure was only ever logged.
     } finally {
       if (isInitial) {
         isBranchListLoadingInitial = false;
@@ -268,7 +263,6 @@ class PackagesProvider extends ChangeNotifier {
     final newDbPtr = jsonDecode(branch.otherdet1 ?? '{}')['db_ptr']?.toString();
 
     if (newDbPtr == null || newDbPtr.isEmpty) {
-      log('No db_ptr found for branch: ${branch.desc}');
       return;
     }
 
@@ -278,7 +272,6 @@ class PackagesProvider extends ChangeNotifier {
     }
 
     // Call migration API
-    log('Migrating account to ${branch.desc} (db_ptr: $newDbPtr)');
 
     try {
       final response = await secureFetch(
@@ -291,14 +284,12 @@ class PackagesProvider extends ChangeNotifier {
           response.data['status_code'] ?? response.data['statusCode'];
 
       if (statusCode != 200) {
-        log('Migration failed: ${response.data['message']}');
         return;
       }
 
-      log('Migration successful: ${response.data['message']}');
       await _updateBranch(pref, branch, newDbPtr, index);
-    } catch (e) {
-      log('Migration error: $e');
+    } catch (_) {
+      // Nothing to recover here: this failure was only ever logged.
     }
   }
 
@@ -387,9 +378,6 @@ class PackagesProvider extends ChangeNotifier {
 
     // CRITICAL: If your ApiService caches the dbptr or base url,
     // ensure it is refreshed here before getPackagesList() is called.
-    log(
-      'Saved Branch: ${branch.desc}, BranchPtr: ${branch.code}, FirmPtr: ${branch.firmptr}',
-    );
     notifyListeners();
     await getPackagesList();
   }
@@ -474,14 +462,13 @@ class PackagesProvider extends ChangeNotifier {
 
           tempList.add(PackagesListModel.fromJson(item));
         } catch (itemError) {
-          log("Error parsing specific package: $itemError");
           continue;
         }
       }
 
       packagesList = tempList;
-    } catch (globalError) {
-      log("Global API Error: $globalError");
+    } catch (_) {
+      // Nothing to recover here: this failure was only ever logged.
     } finally {
       isPackagesListLoading = false;
       notifyListeners();

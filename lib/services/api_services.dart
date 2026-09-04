@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:developer';
 import 'dart:io';
 import 'package:booking/services/navigation_services.dart';
 import 'package:booking/services/shared_preferences.dart';
@@ -37,7 +36,6 @@ class ApiService {
   static Future<void> tokenRemover() async {
     authToken = null;
     dio.options.headers["Authorization"] = "";
-    log("Token removed");
   }
 
   /// Sets up and executes an API request using [Dio].
@@ -70,9 +68,6 @@ class ApiService {
     // There is no hardcoded fallback — the host must supply a base URL.
     final finalBaseUrl = bUrl ?? baseURL ?? '';
     if (finalBaseUrl.isEmpty) {
-      log(
-        "API ERROR: Base URL is empty. Ensure it is passed to the Launcher or saved in SharedPreferences.",
-      );
       return null;
     }
 
@@ -87,7 +82,6 @@ class ApiService {
     if (realId.isNotEmpty) {
       dio.options.headers["realId"] = realId;
     }
-    log('Outgoing realId request header: "$realId"');
 
     if (!dio.interceptors.any((e) => e is TokenInterceptor)) {
       dio.interceptors.add(TokenInterceptor(dio));
@@ -96,25 +90,11 @@ class ApiService {
     if (options != null && options.headers?["Authorization"] != null) {
       dio.options.headers["Authorization"] = options.headers?["Authorization"];
     }
-    log('Url: $baseURL');
-    log(dio.options.headers.toString());
-
-    if (!dio.interceptors.any((e) => e is LogInterceptor)) {
-      dio.interceptors.add(
-        LogInterceptor(
-          requestBody: true,
-          requestHeader: true,
-          responseBody: true,
-          responseHeader: true,
-        ),
-      );
-    }
 
     try {
       Response? response;
       switch (method) {
         case ApiMethod.get:
-          log('Headers: $data');
           response = data != null
               ? await dio.get(
                   url,
@@ -166,22 +146,10 @@ class ApiService {
       }
       return response;
     } on DioException catch (e) {
-      final statusCode = e.response?.statusCode;
-      final responseData = e.response?.data;
-
-      final errorInfo = {
-        "url": url,
-        "method": method.name,
-        "statusCode": statusCode,
-        "message": e.message,
-        "responseData": responseData.toString(),
-      };
-
-      log("API ERROR: $errorInfo");
-
-      if (statusCode == 500) {
-        log("Server error (500)");
-      } else if (e.type == DioExceptionType.receiveTimeout) {
+      // Only the timeouts and a dead connection say anything to the user;
+      // every other failure — a 500 included — is left to the caller, which
+      // reads the null returned below.
+      if (e.type == DioExceptionType.receiveTimeout) {
         showSnackBar(scaffoldMessengerKey.currentContext!, 'Receive Timeout');
       } else if (e.type == DioExceptionType.connectionTimeout) {
         showSnackBar(
@@ -191,9 +159,6 @@ class ApiService {
       } else if (e.error is SocketException) {
         errorResponse["status"] = "101";
         errorResponse["message"] = "Internet error";
-        log(errorResponse.toString());
-      } else {
-        log("Unknown API error");
       }
     }
     return null;
@@ -261,8 +226,8 @@ class TokenInterceptor extends Interceptor {
         ),
       );
       return handler.resolve(retryResponse);
-    } catch (e) {
-      log("Unknown API error: $e");
+    } catch (_) {
+      // Nothing to recover here: this failure was only ever logged.
     }
     return handler.next(err);
   }

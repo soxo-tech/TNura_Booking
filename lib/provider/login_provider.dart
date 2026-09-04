@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:developer';
 import 'package:booking/core/constants.dart';
 import 'package:booking/core/env.dart';
 import 'package:booking/model/booking_history_model.dart';
@@ -66,7 +65,6 @@ class LoginProvider extends ChangeNotifier {
         headers: {"device_id": deviceId},
       );
 
-      log("booking list res:::::: ${response.data}");
 
       if (response.data['statusCode'] == 200) {
         /// Remove extra nested list from result
@@ -82,9 +80,7 @@ class LoginProvider extends ChangeNotifier {
         isBookingFailed = true;
         bookinghistoryModel = null;
       }
-    } catch (e, stackTrace) {
-      log("Booking list error: $e");
-      log("StackTrace: $stackTrace");
+    } catch (e) {
 
       isBookingFailed = true;
       bookinghistoryModel = null;
@@ -137,17 +133,14 @@ class LoginProvider extends ChangeNotifier {
         endpoint: Env().profileAPI,
         method: 'GET',
       );
-      log('Profile API response: ${response.status} - ${response.data}');
       if (response.data['statusCode'] == 200) {
         var json = response.data;
         profileModel = ProfileModel.fromJson(json);
       } else {
-        log('Profile API error or invalid status code');
         ApiService.tokenRemover();
         isLogout = true;
       }
     } catch (e) {
-      log('Exception in getProfileData: $e');
       ApiService.tokenRemover();
       isLogout = true;
     } finally {

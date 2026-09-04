@@ -1,6 +1,5 @@
 // ignore_for_file: prefer_const_constructors, unnecessary_brace_in_string_interps, must_be_immutable, unnecessary_null_comparison, unnecessary_string_interpolations
 import 'dart:convert';
-import 'dart:developer';
 import 'dart:io';
 import 'package:booking/core/colors.dart';
 import 'package:booking/core/constants.dart';
@@ -52,10 +51,6 @@ class _PaymentSuccessfulState extends State<PaymentSuccessful> {
     _appointments = (widget.appointmentJson['data'] as List<dynamic>)
         .cast<Map<String, dynamic>>();
 
-    log("Appointments received: $_appointments");
-    log("TransactionId: ${widget.transactionId}");
-    log("TotalAmount: ${widget.totalAmount}");
-    log("AppointmentJson: ${widget.appointmentJson}");
     Future.delayed(const Duration(seconds: 1), () {
       setState(() => showGif = false);
     });
@@ -574,8 +569,7 @@ class _DownloadConfirmationButtonState
       final file = File('${dir.path}/confirmation.pdf');
       await file.writeAsBytes(bytes, flush: true);
 
-      final result = await OpenFilex.open(file.path);
-      debugPrint('Open result: ${result.type}');
+      await OpenFilex.open(file.path);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

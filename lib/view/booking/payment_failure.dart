@@ -1,6 +1,5 @@
 // ignore_for_file: prefer_const_constructors, prefer_const_literals_to_create_immutables
 
-import 'dart:developer';
 import 'package:booking/core/constants.dart';
 import 'package:booking/core/colors.dart';
 import 'package:booking/main.dart';
@@ -36,7 +35,6 @@ class _PaymentFailureState extends State<PaymentFailure> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<GuestProvider>().setPaymentProcessing(false);
       loggedInFlag = isAppLoggedIn;
-      log('IsAppLoggedIn: $loggedInFlag');
     });
   }
 

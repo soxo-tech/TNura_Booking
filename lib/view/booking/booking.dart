@@ -1,6 +1,5 @@
 // ignore_for_file: use_key_in_widget_constructors, prefer_const_constructors, prefer_const_literals_to_create_immutables
 
-import 'dart:developer';
 import 'package:booking/core/constants.dart';
 
 import 'package:booking/core/colors.dart';
@@ -53,7 +52,6 @@ class _AddGuestsDetailState extends State<AddGuestsDetail>
         if (gp.guests.isEmpty) {
           await gp.initializeGuest(context, loggedInFlag, forceRefresh: true);
         } else {
-          log("Guest already present, skipping clear to prevent duplicates.");
           // Just ensure the profile is filled if it was empty
           await gp.initializeGuest(context, loggedInFlag);
         }
@@ -100,7 +98,6 @@ class _AddGuestsDetailState extends State<AddGuestsDetail>
   Widget build(BuildContext context) {
     return Consumer<GuestProvider>(
       builder: (context, guestProvider, _) {
-        log("Gesture navigation ${isGestureNavigation(context)}");
         return PopScope(
           canPop: false, // Prevents automatic pop
           onPopInvokedWithResult: (didPop, result) {
