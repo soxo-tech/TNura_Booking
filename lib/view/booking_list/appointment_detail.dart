@@ -105,10 +105,14 @@ class _AppointmentDetailState extends State<AppointmentDetail>
             (b) => b.daId == widget.bookingId,
             orElse: () => booking ?? widget.bookingId,
           );
+          // Waits only while a call is actually in flight. An empty packages
+          // list is not a reason to hold the shimmer: everything on this page
+          // comes from the booking response and the arguments this route was
+          // pushed with, and the gradient falls back to the default one, so
+          // gating on it left the page shimmering forever.
           final isLoading =
               provider.isBookingLoading ||
-              packagesProvider.isPackagesListLoading ||
-              packagesProvider.packagesList.isEmpty;
+              packagesProvider.isPackagesListLoading;
 
           final hasError = provider.isBookingFailed || results == null;
           final isEmpty = results != null && results.isEmpty;
@@ -156,7 +160,13 @@ class _AppointmentDetailState extends State<AppointmentDetail>
                             borderRadius: const BorderRadius.all(
                               Radius.circular(8),
                             ),
-                            gradient: widget.packageBackground?.parseGradient(),
+                            // No `?.`: [parseGradient] is declared on `String?`
+                            // and answers the default gradient for a null or
+                            // empty value. Short-circuiting instead left this
+                            // header with no gradient at all whenever the
+                            // package could not be resolved for the card that
+                            // pushed this route.
+                            gradient: widget.packageBackground.parseGradient(),
                           ),
                           child: CachedNetworkImage(
                             imageUrl: widget.packageImage ?? '',

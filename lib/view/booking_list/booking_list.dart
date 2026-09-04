@@ -113,8 +113,23 @@ class _BookingListScreenState extends State<BookingListScreen>
 
   void _onBookingChanged() {
     if (!mounted) return;
-    // Refresh the user's bookings so the newly created appointment appears.
-    Provider.of<LoginProvider>(context, listen: false).getBookingList();
+    _refreshAfterBooking();
+  }
+
+  /// Refetches both lists after a booking is created elsewhere, in the same
+  /// order as the initial load.
+  ///
+  /// The packages list rides along because it is otherwise fetched once from
+  /// `initState`: an attempt that came back empty would leave the cards
+  /// without their gradients until the app restarts, and a host-driven
+  /// refresh is the one chance to retry.
+  Future<void> _refreshAfterBooking() async {
+    final packages = Provider.of<PackagesProvider>(context, listen: false);
+    final login = Provider.of<LoginProvider>(context, listen: false);
+
+    await packages.ensurePackagesLoaded(context);
+    if (!mounted) return;
+    await login.getBookingList();
   }
 
   /// Re-exposes the booking module's providers on a route pushed from here.
@@ -146,7 +161,14 @@ class _BookingListScreenState extends State<BookingListScreen>
     final packages = Provider.of<PackagesProvider>(context, listen: false);
 
     try {
-      await Future.wait([packages.getPackagesList(), login.getBookingList()]);
+      // Packages first, and awaited before the bookings: every card reads its
+      // gradient out of the packages list, and this screen is often the first
+      // thing the host mounts, so nothing has selected a branch or fetched the
+      // packages yet. Running the two together let the bookings land against
+      // an empty packages list.
+      await packages.ensurePackagesLoaded(context);
+      if (!mounted) return;
+      await login.getBookingList();
     } finally {
       if (mounted) {
         setState(() {
@@ -165,9 +187,15 @@ class _BookingListScreenState extends State<BookingListScreen>
     final content = Consumer<LoginProvider>(
       builder: (context, provider, child) {
         final results = provider.bookinghistoryModel?.result;
-        if (provider.isBookingLoading ||
-            packagesProvider.isPackagesListLoading ||
-            packagesProvider.packagesList.isEmpty) {
+        // Waits for the packages call only while it is still in flight, so the
+        // cards paint with their package gradient rather than popping from the
+        // default one. An empty or failed packages list is NOT a reason to
+        // withhold the appointments: the booking response already carries
+        // everything a card shows except the gradient (see `packageDetails`
+        // below), and gating on it hid this section for whole sessions —
+        // nothing refetches the packages list once the first attempt comes
+        // back empty.
+        if (provider.isBookingLoading || packagesProvider.isPackagesListLoading) {
           return SizedBox(); // or shimmer
         }
 
@@ -181,18 +209,12 @@ class _BookingListScreenState extends State<BookingListScreen>
           return SizedBox(); // DO NOT SHOW APPOINTMENTS
         }
 
-        // Only bookings with a date and a resolvable package actually render
-        // as a card below; filter here so the count badge and the
+        // A card needs a date to render its date line, and nothing else — the
+        // package is looked up only for the card's background gradient and is
+        // allowed to be missing. Filtered here so the count badge and the
         // scrollable list agree on how many appointments there are.
         final validResults = results
-            .where(
-              (booking) =>
-                  booking.daDate != null &&
-                  packagesProvider.getPackageByCode(
-                        booking.daPackagetypevalue,
-                      ) !=
-                      null,
-            )
+            .where((booking) => booking.daDate != null)
             .toList();
 
         if (validResults.isEmpty) {
@@ -313,9 +335,12 @@ class _BookingListScreenState extends State<BookingListScreen>
                         final formattedDate = loginProvider.formatHistoryDate(
                           dt,
                         );
+                        // Nullable: a booking whose package code isn't in the
+                        // packages list still renders, it just falls back to
+                        // the default gradient below.
                         final package = packagesProvider.getPackageByCode(
                           booking.daPackagetypevalue,
-                        )!;
+                        );
 
                         final packageName =
                             booking.packageDetails?.description ?? 'N/A';
@@ -324,7 +349,7 @@ class _BookingListScreenState extends State<BookingListScreen>
 
                         Map<String, dynamic> extraData = {};
                         try {
-                          extraData = jsonDecode(package.itmOtherdet3 ?? '{}');
+                          extraData = jsonDecode(package?.itmOtherdet3 ?? '{}');
                         } catch (e) {
                           extraData = {};
                         }
