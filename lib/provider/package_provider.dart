@@ -167,6 +167,12 @@ class PackagesProvider extends ChangeNotifier {
     String? dbptr = pref.getString('dbptr');
 
     if (dbptr == null || dbptr.isEmpty) {
+      // Nothing to fetch against. Clear the loading flags on the way out, or
+      // everything gated on them — the Packages screen, and now
+      // [ensurePackagesLoaded]'s callers — waits forever.
+      isBranchListLoadingInitial = false;
+      isBranchListLoading = false;
+      notifyListeners();
       return;
     }
 
@@ -385,6 +391,31 @@ class PackagesProvider extends ChangeNotifier {
       'Saved Branch: ${branch.desc}, BranchPtr: ${branch.code}, FirmPtr: ${branch.firmptr}',
     );
     notifyListeners();
+    await getPackagesList();
+  }
+
+  /// Loads the packages list, selecting a branch first when none is stored.
+  ///
+  /// [getPackagesList] fetches against `kSelectedBranchDbptr`, and the only
+  /// thing that ever writes that pref is [getBookingFlowBranches] — which runs
+  /// from the Packages screen's [init] alone. Any screen reachable without
+  /// passing through Packages (the booking list the host mounts on its home
+  /// page, appointment history) would otherwise fetch with a null dbptr, get
+  /// an empty list back, and render its cards without the package gradient.
+  /// Fetching the branches first fills the pref and pulls the packages itself,
+  /// so once a branch is stored this costs nothing extra.
+  Future<void> ensurePackagesLoaded(BuildContext context) async {
+    final pref = await SharedPreferencesService.prefs;
+    final String? branchDbPtr = pref.getString(kSelectedBranchDbptr);
+
+    if (branchDbPtr == null || branchDbPtr.isEmpty) {
+      if (!context.mounted) return;
+      await getBookingFlowBranches(context, isInitial: true);
+      // Branch selection fetches the packages itself; only fall through when
+      // it could not select one, so the call below stays a last resort.
+      if (packagesList.isNotEmpty) return;
+    }
+
     await getPackagesList();
   }
 

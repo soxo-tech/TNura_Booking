@@ -112,7 +112,13 @@ class _AppointmentHistoryState extends State<AppointmentHistory>
     final packages = Provider.of<PackagesProvider>(context, listen: false);
 
     try {
-      await Future.wait([packages.getPackagesList(), login.getBookingList()]);
+      // Packages first, and awaited before the bookings — the cards read their
+      // gradient out of the packages list, and this screen can be reached
+      // without ever visiting Packages, which is the only other thing that
+      // selects a branch. See [PackagesProvider.ensurePackagesLoaded].
+      await packages.ensurePackagesLoaded(context);
+      if (!mounted) return;
+      await login.getBookingList();
     } finally {
       if (mounted) {
         setState(() {
@@ -132,6 +138,7 @@ class _AppointmentHistoryState extends State<AppointmentHistory>
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 240, 244, 248),
       appBar: AppBar(
+        backgroundColor: AppColors.white,
         toolbarHeight: kToolbarHeight + 20,
         leading: IconButton(
           onPressed: () {
